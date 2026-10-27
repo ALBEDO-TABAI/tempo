@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, PanelRight, Clock, ArrowRight, Users, Video, MapPin, Link2, AlignLeft, Bell, MoreHorizontal, Trash2, Globe, Repeat, X, ChevronDown } from 'lucide-react';
-import { CalEvent, Occurrence, colorFamily, parseIsoDate, isoDate, startOfDayMs, toWall, fromWall, ymd, dayOf, describe as describeRule, parseRRule, Attendee } from '@tempo/core';
-import { useStore, getState, setState, setPrefs, findOccurrence, updateOccurrence, deleteOccurrences, openMenu, calendarOf, isDark, occurrencesIn, select, goToDay } from '../store';
-import { longDate, panelTime, durationLabel } from '../fmt';
+import { Search, PanelRight, Clock, ArrowRight, Users, Video, MapPin, Link2, AlignLeft, Bell, MoreHorizontal, Globe, Palette, Repeat, X, ChevronDown } from 'lucide-react';
+import { CalEvent, Occurrence, colorFamily, PALETTE, parseIsoDate, isoDate, startOfDayMs, toWall, fromWall, ymd, dayOf, parseRRule, Attendee } from '@tempo/core';
+import { useStore, getState, setState, setPrefs, findOccurrence, updateOccurrence, openMenu, calendarOf, isDark, occurrencesIn, select, goToDay } from '../store';
+import { longDate, panelTime, durationLabel, gmtLabel, ruleLabel } from '../fmt';
 import { t } from '../i18n';
 import { MOD } from '../commands';
 import { ShortcutList } from './Shortcuts';
@@ -71,8 +71,8 @@ export { REMINDER_OPTS };
 function EventPanel({ occKey }: { occKey: string }) {
   const s = useStore((x) => ({ events: x.events, focus: x.focusTitle, prefs: x.prefs, calendars: x.calendars, dark: isDark(x) }));
   const occ = findOccurrence(occKey); const titleRef = useRef<HTMLDivElement>(null);
-  const [desc, setDesc] = useState(occ?.event.description ?? ''); const [loc, setLoc] = useState(occ?.event.location ?? ''); const [guest, setGuest] = useState('');
-  useEffect(() => { const el = titleRef.current; if (el && occ) { el.focus(); const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const sl = getSelection(); sl?.removeAllRanges(); sl?.addRange(r); } }, [s.focus]); // eslint-disable-line
+  const [desc, setDesc] = useState(occ?.event.description ?? ''); const [loc, setLoc] = useState(occ?.event.location ?? ''); const [guest, setGuest] = useState(''); const [optsOpen, setOptsOpen] = useState(false);
+  const firstFocus = useRef(s.focus); useEffect(() => { const el = titleRef.current; if (s.focus === firstFocus.current && getState().draftId !== occKey && occ?.event.title) return; if (el && occ) { el.focus(); const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const sl = getSelection(); sl?.removeAllRanges(); sl?.addRange(r); } }, [s.focus]); // eslint-disable-line
   if (!occ) return <Useful />;
   const ev = occ.event; const cal = calendarOf(ev.calendarId); const ro = !!cal?.readOnly; const tz = s.prefs.primaryTimeZone; const h24 = s.prefs.format24HourTime;
   const fam = colorFamily(ev.color || cal?.color || '#999', s.dark);
@@ -81,7 +81,7 @@ function EventPanel({ occKey }: { occKey: string }) {
   const dur = Math.round((occ.end - occ.start) / 60000);
   const anchor = (e: React.MouseEvent) => (e.currentTarget as HTMLElement).getBoundingClientRect();
   const series = occ.seriesId ? getState().events[occ.seriesId] : ev.rrule ? ev : undefined;
-  const ruleText = series?.rrule ? describeRule(parseRRule(series.rrule)) : t('doesNotRepeat');
+  const ruleText = series?.rrule ? ruleLabel(parseRRule(series.rrule)) : t('doesNotRepeat');
   const toggleAllDay = () => {
     if (ev.allDay) { const { y, m, d } = ymd(occ.startDay); const st = fromWall({ y, m, d, h: 9 }, tz); patch({ allDay: false, start: st, end: st + s.prefs.defaultEventDuration * 60000, timeZone: tz }); }
     else patch({ allDay: true, start: isoDate(occ.startDay), end: isoDate(occ.endDay + 1), timeZone: undefined });
@@ -91,62 +91,61 @@ function EventPanel({ occKey }: { occKey: string }) {
     const list: Attendee[] = [...(ev.attendees ?? [])]; if (!list.some((a) => a.organizer)) list.unshift({ email: 'me@tempo.local', rsvp: 'accepted', organizer: true, self: true });
     if (!list.some((a) => a.email === em)) list.push({ email: em, rsvp: 'needsAction' }); patch({ attendees: list }, 'all');
   };
+  const showOpts = optsOpen || ev.allDay || !!series || (!!ev.timeZone && ev.timeZone !== tz);
+  const menuAt = (kind: any, data: Record<string, unknown> = {}) => (e: React.MouseEvent) => { const r = anchor(e); openMenu({ kind, x: r.left, y: r.bottom + 4, data: { key: occKey, ...data } }); };
+  const evTz = ev.timeZone || tz;
   return (
     <div className="ev" data-testid="eventpanel">
-      <div className="ev-top"><span style={{ flex: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t('event')} <ChevronDown size={12} /></span>
-        <button className="ibtn sm" onClick={(e) => { const r = anchor(e); openMenu({ kind: 'chip', x: r.left - 180, y: r.bottom + 4, data: { key: occKey } }); }}><MoreHorizontal size={16} /></button></div>
-      <div ref={titleRef} className="ev-title" data-testid="ev-title" contentEditable={!ro} suppressContentEditableWarning data-ph={t('noTitle')}
-        onBlur={saveTitle} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveTitle(); (e.target as HTMLElement).blur(); setState({ draftId: null }); } if (e.key === 'Escape') { (e.target as HTMLElement).textContent = ev.title; (e.target as HTMLElement).blur(); } e.stopPropagation(); }}>{ev.title}</div>
-      <div className="ev-row"><Clock size={16} />
-        {ev.allDay ? <span className="fld">{longDate(occ.startDay)}{occ.endDay > occ.startDay ? ` → ${longDate(occ.endDay)}` : ''}</span> : <>
-          <button className="fld tnum" disabled={ro} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'time', x: r.left, y: r.bottom + 4, data: { key: occKey, edge: 'start' } }); }}>{panelTime(occ.start, tz, h24)}</button>
-          <ArrowRight size={14} style={{ color: 'var(--c-text2)' }} />
-          <button className="fld tnum" disabled={ro} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'time', x: r.left, y: r.bottom + 4, data: { key: occKey, edge: 'end' } }); }}>{panelTime(occ.end, tz, h24)}</button>
-          <span className="dur">{durationLabel(dur, t)}</span></>}
+      <div className="ev-top"><button className="ev-kind">{t('event')} <ChevronDown size={14} /></button><span style={{ flex: 1 }} />
+        <button className="ibtn ev-more" onClick={(e) => { const r = anchor(e); openMenu({ kind: 'chip', x: r.left - 180, y: r.bottom + 4, data: { key: occKey } }); }}><MoreHorizontal size={16} /></button></div>
+      <div className="ev-sec first"><div className="ev-r">
+        <div ref={titleRef} className="ev-title" data-testid="ev-title" contentEditable={!ro} suppressContentEditableWarning data-ph={t('noTitle')}
+          onBlur={saveTitle} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveTitle(); (e.target as HTMLElement).blur(); setState({ draftId: null }); } if (e.key === 'Escape') { (e.target as HTMLElement).textContent = ev.title; (e.target as HTMLElement).blur(); } e.stopPropagation(); }}>{ev.title}</div></div></div>
+      <div className="ev-sec">
+        {ev.allDay ? <div className="ev-r"><div className="ev-f"><Clock size={18} /><DateField occ={occ} disabled={ro} label={`${longDate(occ.startDay)}${occ.endDay > occ.startDay ? ` → ${longDate(occ.endDay)}` : ''}`} onChange={(d) => { const len = occ.endDay - occ.startDay; patch({ start: isoDate(d), end: isoDate(d + len + 1) }); }} /></div></div> : <>
+          <div className="ev-r">
+            <button className="ev-f ev-t1 tnum" data-testid="ev-start" disabled={ro} onClick={menuAt('time', { edge: 'start' })}><Clock size={18} /><span>{panelTime(occ.start, tz, h24)}</span></button>
+            <button className="ev-f ev-t2 tnum" data-testid="ev-end" disabled={ro} onClick={menuAt('time', { edge: 'end' })}><ArrowRight size={16} /><span>{panelTime(occ.end, tz, h24)}</span><span className="dur">{durationLabel(dur, t)}</span></button>
+          </div>
+          <div className="ev-r ind"><DateField occ={occ} disabled={ro} onChange={(d) => { const delta = startOfDayMs(d, tz) - startOfDayMs(occ.startDay, tz); patch({ start: occ.start + delta, end: occ.end + delta }); }} /></div></>}
+        {!showOpts ? <div className="ev-r ind"><button className="ev-f ev-opts" data-testid="ev-opts" disabled={ro} onClick={() => setOptsOpen(true)}><span>{t('allDay')}</span><span>{t('timeZone')}</span><span>{t('repeat')}</span></button></div> : <>
+          <div className="ev-r"><button className="ev-f" data-testid="ev-allday" disabled={ro} onClick={toggleAllDay}><span className={`tgl${ev.allDay ? ' on' : ''}`}><i /></span><span className={ev.allDay ? '' : 'dim'}>{t('allDay')}</span></button></div>
+          {!ev.allDay && <div className="ev-r"><button className="ev-f" data-testid="ev-tz" disabled={ro} onClick={menuAt('tz')}><Globe size={18} /><span className="dim">{gmtLabel(evTz)}</span><span>&nbsp;{evTz.split('/').pop()!.replace(/_/g, ' ')}</span></button></div>}
+          <div className="ev-r"><button className="ev-f" data-testid="ev-repeat" disabled={ro} onClick={menuAt('repeat')}><Repeat size={18} /><span className={series ? '' : 'dim'}>{series ? ruleText : t('repeat')}</span></button></div></>}
       </div>
-      {!ev.allDay && <div className="ev-row" style={{ paddingLeft: 42 }}><DateField occ={occ} disabled={ro} onChange={(d) => { const delta = startOfDayMs(d, tz) - startOfDayMs(occ.startDay, tz); patch({ start: occ.start + delta, end: occ.end + delta }); }} /></div>}
-      <div className="ev-opts">
-        <button className={ev.allDay ? 'on' : ''} disabled={ro} onClick={toggleAllDay}>{t('allDay')}</button>
-        <button disabled={ro || ev.allDay} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'tz', x: r.left, y: r.bottom + 4, data: { key: occKey } }); }} className={ev.timeZone && ev.timeZone !== tz ? 'on' : ''}>{ev.timeZone && ev.timeZone !== tz ? ev.timeZone.split('/').pop()!.replace(/_/g, ' ') : t('timeZone')}</button>
-        <button disabled={ro} className={series ? 'on' : ''} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'repeat', x: r.left, y: r.bottom + 4, data: { key: occKey } }); }}>{series ? ruleText : t('repeat')}</button>
+      <div className="ev-sec">
+        <div className="ev-r"><div className="ev-f"><Users size={18} /><input placeholder={t('addParticipants')} value={guest} disabled={ro} onChange={(e) => setGuest(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); e.stopPropagation(); }} /></div></div>
+        {ev.attendees?.map((a) => (
+          <div key={a.email} className="ev-r ind"><div className="ev-f"><span className="att">{a.name || a.email}{a.organizer ? <span className="dim"> · {t('organizer')}</span> : null}</span>
+            {!a.organizer && !ro && <button className="ibtn xs" onClick={() => patch({ attendees: ev.attendees!.filter((x) => x.email !== a.email) }, 'all')}><X size={12} /></button>}</div></div>
+        ))}
+        <div className="ev-r"><div className="ev-f"><Video size={18} /><input placeholder={t('conferencing')} defaultValue={ev.conferenceUrl ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.conferenceUrl ?? '')) patch({ conferenceUrl: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div>
+        <div className="ev-r"><button className="ev-f" data-testid="ev-color" disabled={ro} onClick={menuAt('evColor')}><Palette size={18} /><span className={ev.color ? '' : 'dim'}>{ev.color ? (PALETTE.find((c) => c.hex === ev.color?.toUpperCase())?.name ?? ev.color) : t('eventColor')}</span>{ev.color && <span className="ev-sw" style={{ ['--sw' as any]: fam.backgroundPrimary, marginLeft: 2 }} />}</button></div>
+        <div className="ev-r"><div className="ev-f"><MapPin size={18} /><input placeholder={t('location')} value={loc} disabled={ro} onChange={(e) => setLoc(e.target.value)} onBlur={() => { if (loc !== (ev.location ?? '')) patch({ location: loc || undefined }, 'all'); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLElement).blur(); e.stopPropagation(); }} /></div></div>
       </div>
-      <div className="ev-sep" />
-      <div className="ev-row dim"><Users size={16} /><input className="fld" placeholder={t('addParticipants')} value={guest} disabled={ro} onChange={(e) => setGuest(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); e.stopPropagation(); }} /></div>
-      {ev.attendees?.map((a) => (
-        <div key={a.email} className="ev-row" style={{ paddingLeft: 42, minHeight: 26 }}>
-          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name || a.email}{a.organizer ? <span style={{ color: 'var(--c-text2)' }}> · {t('organizer')}</span> : null}</span>
-          {!a.organizer && !ro && <button className="ibtn xs" onClick={() => patch({ attendees: ev.attendees!.filter((x) => x.email !== a.email) }, 'all')}><X size={12} /></button>}
+      <div className="ev-sec"><div className="ev-r"><div className="ev-f"><Link2 size={18} /><input placeholder={t('addLink')} defaultValue={ev.url ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.url ?? '')) patch({ url: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div></div>
+      <div className="ev-sec"><div className="ev-r auto"><div className="ev-f noicon"><textarea rows={Math.min(12, Math.max(1, desc.split('\n').length))} placeholder={t('description')} value={desc} disabled={ro} onChange={(e) => setDesc(e.target.value)} onBlur={() => { if (desc !== (ev.description ?? '')) patch({ description: desc || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div></div>
+      <div className="ev-sec">
+        <div className="ev-r"><button className="ev-f" disabled={ro} onClick={menuAt('calendarPick')}><span className="ev-sw" style={{ ['--sw' as any]: fam.backgroundPrimary }} /><span>{cal?.name}</span></button></div>
+        <div className="ev-r ind" style={{ gap: 0 }}>
+          <button className="ev-f" style={{ minWidth: 94 }} disabled={ro} onClick={menuAt('busy')}>{ev.transparency === 'transparent' ? t('free') : t('busy')}</button>
+          <button className="ev-f" disabled={ro} onClick={menuAt('visibility')}>{ev.visibility === 'private' ? t('privateV') : ev.visibility === 'public' ? t('publicV') : t('defaultVisibility')}</button>
         </div>
-      ))}
-      <div className="ev-row dim"><Video size={16} /><input className="fld" placeholder={t('conferencing')} defaultValue={ev.conferenceUrl ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.conferenceUrl ?? '')) patch({ conferenceUrl: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div>
-      <div className="ev-row dim"><MapPin size={16} /><input className="fld" placeholder={t('location')} value={loc} disabled={ro} onChange={(e) => setLoc(e.target.value)} onBlur={() => { if (loc !== (ev.location ?? '')) patch({ location: loc || undefined }, 'all'); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLElement).blur(); e.stopPropagation(); }} /></div>
-      <div className="ev-sep" />
-      <div className="ev-row dim"><Link2 size={16} /><input className="fld" placeholder={t('addLink')} defaultValue={ev.url ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.url ?? '')) patch({ url: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div>
-      <div className="ev-sep" />
-      <div className="ev-row dim" style={{ alignItems: 'flex-start', paddingTop: 6 }}><AlignLeft size={16} style={{ marginTop: 2 }} /><textarea className="fld" rows={Math.min(10, Math.max(2, desc.split('\n').length))} placeholder={t('description')} value={desc} disabled={ro} onChange={(e) => setDesc(e.target.value)} onBlur={() => { if (desc !== (ev.description ?? '')) patch({ description: desc || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div>
-      <div className="ev-sep" />
-      <div className="ev-row"><span className="swatch" style={{ ['--sw' as any]: fam.backgroundPrimary }} />
-        <button className="fld" disabled={ro} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'calendarPick', x: r.left, y: r.bottom + 4, data: { key: occKey } }); }}>{cal?.name}</button></div>
-      <div className="ev-row" style={{ paddingLeft: 42, gap: 24 }}>
-        <button className="fld" disabled={ro} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'busy', x: r.left, y: r.bottom + 4, data: { key: occKey } }); }}>{ev.transparency === 'transparent' ? t('free') : t('busy')}</button>
-        <button className="fld" disabled={ro} onClick={(e) => { const r = anchor(e); openMenu({ kind: 'visibility', x: r.left, y: r.bottom + 4, data: { key: occKey } }); }}>{ev.visibility === 'private' ? t('privateV') : ev.visibility === 'public' ? t('publicV') : t('defaultVisibility')}</button>
+        <div className="ev-r"><button className="ev-f" disabled={ro} onClick={menuAt('reminder')}><Bell size={18} /><span className="dim">{t('reminders')}</span></button></div>
+        {(ev.reminders ?? []).map((r, i) => (
+          <div key={i} className="ev-r ind"><div className="ev-f"><span style={{ flex: 1 }}>{reminderLabel(r.minutes)}</span>
+            {!ro && <button className="ibtn xs" onClick={() => patch({ reminders: ev.reminders!.filter((_, j) => j !== i) }, 'all')}><X size={12} /></button>}</div></div>
+        ))}
+        {!ro && !(ev.reminders ?? []).length && <div className="ev-r ind"><button className="ev-f dim" onClick={menuAt('reminder')}>{t('addReminder')}</button></div>}
       </div>
-      <div className="ev-row dim"><Bell size={16} /><span>{t('reminders')}</span></div>
-      {(ev.reminders ?? []).map((r, i) => (
-        <div key={i} className="ev-row" style={{ paddingLeft: 42, minHeight: 28 }}><span style={{ flex: 1 }}>{reminderLabel(r.minutes)}</span>
-          {!ro && <button className="ibtn xs" onClick={() => patch({ reminders: ev.reminders!.filter((_, j) => j !== i) }, 'all')}><X size={12} /></button>}</div>
-      ))}
-      {!ro && <div className="ev-row dim" style={{ paddingLeft: 42, minHeight: 28 }}><button className="fld" onClick={(e) => { const r = anchor(e); openMenu({ kind: 'reminder', x: r.left, y: r.bottom + 4, data: { key: occKey } }); }}>{t('addReminder')}</button></div>}
-      {!ro && <><div className="ev-sep" /><div className="ev-row dim"><Trash2 size={16} /><button className="fld" onClick={() => deleteOccurrences([occKey])}>{t('deleteEvent')}</button></div></>}
-      <div style={{ display: 'none' }}><Globe /><Repeat /></div>
     </div>
   );
 }
 
-function DateField({ occ, disabled, onChange }: { occ: Occurrence; disabled?: boolean; onChange: (d: number) => void }) {
+function DateField({ occ, disabled, onChange, label }: { occ: Occurrence; disabled?: boolean; label?: string; onChange: (d: number) => void }) {
   return (
-    <label className="fld" style={{ position: 'relative' }}>
-      {longDate(occ.startDay)}
+    <label className="ev-f ev-date" style={{ position: 'relative' }}>
+      {label ?? longDate(occ.startDay)}
       <input type="date" disabled={disabled} value={isoDate(occ.startDay)} onChange={(e) => { if (e.target.value) onChange(parseIsoDate(e.target.value)); }}
         style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'default' }} onKeyDown={(e) => e.stopPropagation()} />
     </label>

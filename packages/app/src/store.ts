@@ -23,22 +23,22 @@ export const defaultPrefs = (): Prefs => ({
   format24HourTime: false, interfaceTheme: 'system', sidebar: true, contextPanel: true, primaryTimeZone: systemTimeZone(), additionalTimeZones: [],
   locale: detectLocale(), defaultEventDuration: 30, collapseAllDaySection: false, todayKey: 'today',
 });
-export type Overlay = null | 'cmdk' | 'settings' | 'shortcuts' | 'search' | 'goto';
-export interface MenuState { kind: 'view' | 'chip' | 'grid' | 'calendar' | 'repeat' | 'busy' | 'visibility' | 'reminder' | 'calendarPick' | 'time' | 'tz' | 'color'; x: number; y: number; data?: any }
+export type Overlay = null | 'cmdk' | 'settings' | 'shortcuts' | 'search' | 'goto' | 'recurrence';
+export interface MenuState { kind: 'view' | 'chip' | 'grid' | 'calendar' | 'repeat' | 'busy' | 'visibility' | 'reminder' | 'calendarPick' | 'time' | 'tz' | 'color' | 'evColor' | 'recurrence'; x: number; y: number; data?: any }
 export interface Toast { id: number; text: string; undo?: () => void }
 export interface ScopeAsk { kind: 'edit' | 'delete'; resolve: (s: 'this' | 'following' | 'all' | null) => void }
 export interface State {
   ready: boolean; prefs: Prefs; accounts: Account[]; calendars: Calendar[]; events: Record<string, CalEvent>;
   anchor: DayNum; today: DayNum; now: number; systemDark: boolean;
   selected: string[]; editing: string | null; draftId: string | null; focusTitle: number;
-  overlay: Overlay; menu: MenuState | null; toasts: Toast[]; scopeAsk: ScopeAsk | null; settingsPage: string;
+  overlay: Overlay; menu: MenuState | null; toasts: Toast[]; scopeAsk: ScopeAsk | null; settingsPage: string; recKey: string | null;
   minDensity: number; cursorDay: DayNum; clipboard: CalEvent[]; searchQuery: string;
 }
 const tzNow = () => dayOf(Date.now(), systemTimeZone());
 let state: State = {
   ready: false, prefs: defaultPrefs(), accounts: [], calendars: [], events: {}, anchor: tzNow(), today: tzNow(), now: Date.now(),
   systemDark: typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches,
-  selected: [], editing: null, draftId: null, focusTitle: 0, overlay: null, menu: null, toasts: [], scopeAsk: null, settingsPage: 'general',
+  selected: [], editing: null, draftId: null, focusTitle: 0, overlay: null, menu: null, toasts: [], scopeAsk: null, settingsPage: 'general', recKey: null,
   minDensity: -4, cursorDay: tzNow(), clipboard: [], searchQuery: '',
 };
 const subs = new Set<() => void>();

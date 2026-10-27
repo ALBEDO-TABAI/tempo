@@ -1,6 +1,6 @@
 // Date/time display formatting (locale-aware, original).
-import { locale } from './i18n';
-import { toWall, ymd, weekday as wdOf, DayNum } from '@tempo/core';
+import { locale, t } from './i18n';
+import { toWall, ymd, weekday as wdOf, DayNum, dayOf } from '@tempo/core';
 
 const TH = '\u2009', HAIR = '\u200a';
 const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -56,4 +56,25 @@ export function durationLabel(min: number, tk: (k: any, v?: any) => string) {
 export function gmtLabel(tz: string, ms = Date.now()) {
   const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' }).formatToParts(ms).find((x) => x.type === 'timeZoneName')?.value || 'GMT';
   return p.toUpperCase();
+}
+
+/** Localised one-line description of an RRULE (panel + repeat menu). */
+export function ruleLabel(r: import('@tempo/core').RRule): string {
+  const units: Record<string, [string, string]> = { DAILY: [t('uDay'), t('uDays')], WEEKLY: [t('uWeek'), t('uWeeks')], MONTHLY: [t('uMonth'), t('uMonths')], YEARLY: [t('uYear'), t('uYears')] };
+  const [one, many] = units[r.freq] ?? [r.freq.toLowerCase(), r.freq.toLowerCase()];
+  const zhL = locale() !== 'en';
+  let s: string;
+  if (r.freq === 'DAILY' && r.interval === 1 && !r.byDay?.length) s = t('daily');
+  else if (r.freq === 'WEEKLY' && r.interval === 1 && r.byDay?.length === 5 && [1, 2, 3, 4, 5].every((d) => r.byDay!.some((b) => b.wd === d))) s = t('weekdays');
+  else {
+    s = r.interval === 1 ? (zhL ? `${t('every')}${one}` : `${t('every')} ${one}`) : t('ruleEvery', { n: r.interval, u: many });
+    if (r.byDay?.length) {
+      const ord = t('ordN').split('|');
+      const ds = r.byDay.map((b) => (b.n ? (b.n === -1 ? ord[4] : ord[b.n - 1] ?? `${b.n}`) + (zhL ? '' : ' ') : '') + wdShort(b.wd)).join(zhL ? '、' : ', ');
+      s += t('ruleOn', { d: ds });
+    } else if (r.byMonthDay?.length) s += zhL ? ` ${r.byMonthDay.join('、')} 日` : ` on day ${r.byMonthDay.join(', ')}`;
+  }
+  if (r.count) s += t('ruleCount', { n: r.count });
+  else if (r.until !== undefined) s += t('ruleUntil', { d: r.untilIsDate ? longDate(r.until) : longDate(dayOf(r.until, Intl.DateTimeFormat().resolvedOptions().timeZone)) });
+  return s;
 }

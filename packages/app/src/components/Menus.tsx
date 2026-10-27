@@ -5,7 +5,7 @@ import { PALETTE, colorFamily, parseRRule, stringifyRRule, weekday, ymd, startOf
 import { useStore, getState, setState, setView, setPrefs, openMenu, findOccurrence, updateOccurrence, deleteOccurrences, duplicateOccurrences, copyOccurrences, paste, createEvent, calendarOf, updateCalendar, removeCalendar, addCalendar, exportCalendar, isDark, MenuState } from '../store';
 import { t } from '../i18n';
 import { MOD } from '../commands';
-import { wdShort, monthName, panelTime } from '../fmt';
+import { wdShort, monthName, panelTime, ruleLabel } from '../fmt';
 import { REMINDER_OPTS, reminderLabel } from './Panel';
 
 function Item({ label, hint, checked, onClick, danger, disabled, sub, icon }: { label: string; hint?: string; checked?: boolean; onClick?: () => void; danger?: boolean; disabled?: boolean; sub?: boolean; icon?: React.ReactNode }) {
@@ -85,6 +85,10 @@ function MenuBody({ m }: { m: MenuState }) {
     case 'reminder': { const occ = findOccurrence(m.data.key); return <div className="pop-sec">
       {REMINDER_OPTS.map((r) => <Item key={r} label={reminderLabel(r)} onClick={() => { const cur = occ?.event.reminders ?? []; if (!cur.some((x) => x.minutes === r)) updateOccurrence(m.data.key, { reminders: [...cur, { minutes: r, method: 'notification' as const }].sort((a, b) => a.minutes - b.minutes) }, { scope: 'all' }); close(); }} />)}</div>; }
     case 'repeat': return <RepeatMenu m={m} />;
+    case 'evColor': { const occ = findOccurrence(m.data.key); if (!occ) return null; const dk = isDark(); const calc = calendarOf(occ.event.calendarId)?.color;
+      return <div className="pop-sec" style={{ width: 200 }}>
+        <Item label={t('calendarColor')} checked={!occ.event.color} icon={<span className="swatch" style={{ ['--sw' as any]: colorFamily(calc || '#999', dk).backgroundPrimary }} />} onClick={() => { updateOccurrence(m.data.key, { color: undefined }, { scope: 'all' }); close(); }} />
+        {PALETTE.map((c) => <Item key={c.id} label={c.name} checked={occ.event.color?.toUpperCase() === c.hex} icon={<span className="swatch" style={{ ['--sw' as any]: colorFamily(c.hex, dk).backgroundPrimary }} />} onClick={() => { updateOccurrence(m.data.key, { color: c.hex }, { scope: 'all' }); close(); }} />)}</div>; }
     case 'time': return <TimeMenu m={m} />;
     case 'tz': { const zones = ['UTC', 'America/Los_Angeles', 'America/New_York', 'Europe/London', 'Europe/Berlin', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney'];
       const occ = findOccurrence(m.data.key);
@@ -124,11 +128,15 @@ function RepeatMenu({ m }: { m: MenuState }) {
   ];
   const series = occ.seriesId ? getState().events[occ.seriesId] : occ.event.rrule ? occ.event : undefined;
   const cur = series?.rrule ? stringifyRRule(parseRRule(series.rrule)) : undefined;
+  const known = opts.some(([, r]) => (r ? stringifyRRule(parseRRule(r)) : undefined) === cur);
   return <div className="pop-sec">{opts.map(([l, r]) => <Item key={l} label={l} checked={(cur ?? undefined) === (r ? stringifyRRule(parseRRule(r)) : undefined)} onClick={() => {
     close();
     if (series) updateOccurrence(m.data.key, { rrule: r }, { scope: 'all' });
     else updateOccurrence(m.data.key, { rrule: r });
-  }} />)}</div>;
+  }} />)}
+    {!known && cur && <Item label={ruleLabel(parseRRule(cur))} checked onClick={close} />}
+    <div className="pop-div" />
+    <Item label={t('custom')} onClick={() => { close(); setState({ overlay: 'recurrence', recKey: m.data.key }); }} /></div>;
 }
 
 function TimeMenu({ m }: { m: MenuState }) {

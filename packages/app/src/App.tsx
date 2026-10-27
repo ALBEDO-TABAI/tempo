@@ -10,7 +10,7 @@ import { Panel } from './components/Panel';
 import { Menus } from './components/Menus';
 import { CommandMenu } from './components/CommandMenu';
 import { Settings } from './components/Settings';
-import { Toasts, ScopeDialog, GotoDialog } from './components/Overlays';
+import { Toasts, ScopeDialog, GotoDialog, RecurrenceDialog } from './components/Overlays';
 import { startReminders, trayTick } from './notify';
 import { undo, redo, copyOccurrences, paste, duplicateOccurrences, deleteOccurrences } from './store';
 
@@ -65,6 +65,7 @@ export function App() {
       {s.overlay === 'cmdk' && <CommandMenu />}
       {s.overlay === 'settings' && <Settings />}
       {s.overlay === 'goto' && <GotoDialog />}
+      {s.overlay === 'recurrence' && <RecurrenceDialog />}
       <ScopeDialog />
       <Toasts />
     </div>
