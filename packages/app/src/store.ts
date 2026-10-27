@@ -127,7 +127,7 @@ export async function init() {
   const today = dayOf(Date.now(), prefs.primaryTimeZone);
   setState({ ready: true, prefs, accounts, calendars: [...calendars].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)), events: Object.fromEntries(events.map((e) => [e.id, e])), today, anchor: today, cursorDay: today });
   if (HARNESS && Q.get('date')) setState({ anchor: parseIsoDate(Q.get('date')!) });
-  (window as any).__tempo = { getState, setState };
+  (window as any).__tempo = { getState, setState, setPrefs };
   if (typeof matchMedia !== 'undefined') matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => setState({ systemDark: e.matches }));
   window.setInterval(tick, 15000);
 }

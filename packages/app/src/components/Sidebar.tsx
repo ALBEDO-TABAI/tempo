@@ -17,7 +17,7 @@ export function MiniMonth() {
   return (
     <div className="mini" data-testid="minimonth">
       <div className="mini-head">
-        <div className="mini-title">{miniTitle(month)}</div>
+        <div className="mini-title" style={{ opacity: page === null ? 0 : 1 }}>{miniTitle(month)}</div>
         <button className="ibtn sm" onClick={() => setPage(addMonths(month, -1))}><ChevronUp size={16} /></button>
         <button className="ibtn sm" style={{ marginLeft: 8 }} onClick={() => setPage(addMonths(month, 1))}><ChevronDown size={16} /></button>
       </div>

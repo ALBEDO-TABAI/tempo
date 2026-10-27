@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useStore, isDark, getState, setState, importIcsText, findOccurrence, select, goToDay, setPrefs, zoom } from './store';
+import { useStore, isDark, getState, setState, importIcsText, findOccurrence, select, goToDay, setPrefs, zoom, openOverlay } from './store';
 import { handleKey, runCommand, selectAllVisible } from './commands';
 import { bridge } from './platform';
 import { Sidebar } from './components/Sidebar';
@@ -15,8 +15,9 @@ import { startReminders, trayTick } from './notify';
 import { undo, redo, copyOccurrences, paste, duplicateOccurrences, deleteOccurrences } from './store';
 
 export function App() {
-  const s = useStore((x) => ({ ready: x.ready, dark: isDark(x), view: x.prefs.gridView, sidebar: x.prefs.sidebar, panel: x.prefs.contextPanel, overlay: x.overlay, locale: x.prefs.locale }));
-  useEffect(() => { document.documentElement.classList.toggle('dark', s.dark); bridge.send('theme', { dark: s.dark, source: getState().prefs.interfaceTheme }); }, [s.dark]);
+  const s = useStore((x) => ({ ready: x.ready, dark: isDark(x), themeSrc: x.prefs.interfaceTheme, view: x.prefs.gridView, sidebar: x.prefs.sidebar, panel: x.prefs.contextPanel, overlay: x.overlay, locale: x.prefs.locale }));
+  useEffect(() => { document.documentElement.classList.toggle('dark', s.dark); bridge.send('theme', { dark: s.dark, source: s.themeSrc }); }, [s.dark, s.themeSrc]);
+  useEffect(() => { bridge.send('locale', s.locale); }, [s.locale]);
   useEffect(() => {
     const kd = (e: KeyboardEvent) => { if (handleKey(e)) { e.preventDefault(); e.stopPropagation(); } };
     window.addEventListener('keydown', kd);
@@ -25,7 +26,13 @@ export function App() {
     window.addEventListener('resize', rs); rs();
     const offs = [
       bridge.on('menu', (id: string) => {
+        // inside a text field the Edit menu keeps its native meaning
+        const ae = document.activeElement as HTMLElement | null;
+        const inText = !!ae && (ae.isContentEditable || /^(INPUT|TEXTAREA)$/.test(ae.tagName));
+        const native: Record<string, string> = { undo: 'undo', redo: 'redo', cut: 'cut', copy: 'copy', paste: 'paste', selectAll: 'selectAll', delete: 'delete' };
+        if (inText && native[id]) { if (id === 'paste') navigator.clipboard.readText().then((t) => document.execCommand('insertText', false, t)).catch(() => {}); else document.execCommand(native[id]); return; }
         switch (id) {
+          case 'cmdk': openOverlay('cmdk'); break;
           case 'undo': undo(); break; case 'redo': redo(); break; case 'selectAll': selectAllVisible(); break;
           case 'copy': copyOccurrences(getState().selected); break; case 'cut': copyOccurrences(getState().selected, true); break; case 'paste': paste(); break;
           case 'duplicate': duplicateOccurrences(getState().selected); break; case 'delete': deleteOccurrences(getState().selected); break;
@@ -40,6 +47,7 @@ export function App() {
       }),
       bridge.on('tray-open', (key: string) => { const o = findOccurrence(key); if (o) { goToDay(o.startDay); select([o.key]); } }),
     ];
+    bridge.send('ready');
     const stop = startReminders(); const tt = window.setInterval(trayTick, 30000); trayTick();
     return () => { window.removeEventListener('keydown', kd); window.removeEventListener('resize', rs); offs.forEach((f) => f()); stop(); clearInterval(tt); };
   }, []);

@@ -27,6 +27,7 @@ export function Panel() {
         </div>
         <button className="ibtn" onClick={() => setPrefs({ contextPanel: false })}><PanelRight size={18} /></button>
       </div>
+      <div style={{ height: 21, flex: 'none' }} />
       <div className="panel-body">
         {s.overlay === 'shortcuts' ? <ShortcutList filter={s.q} /> : s.overlay === 'search' ? <SearchResults q={s.q} /> : s.editing ? <EventPanel key={s.editing} occKey={s.editing} /> : <Useful />}
       </div>
