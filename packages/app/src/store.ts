@@ -17,11 +17,17 @@ export interface Prefs {
   interfaceTheme: 'system' | 'light' | 'dark'; sidebar: boolean; contextPanel: boolean;
   primaryTimeZone: string; additionalTimeZones: string[]; locale: Locale; defaultEventDuration: number;
   collapseAllDaySection: boolean; todayKey: 'today' | 'alignToday';
+  upcomingHours: number; mapsProvider: 'google' | 'apple' | 'osm'; askTzUpdate: boolean; openAtLogin: boolean; showAdditionalTz: boolean;
+  notifications: boolean; defaultReminder: number; defaultAllDayReminder: number; notifySound: boolean; menuBarNext: boolean; menuBarMaxLen: number;
+  displayName: string; email: string; videoProvider: 'none' | 'meet' | 'zoom' | 'teams' | 'custom'; videoUrl: string; autoAddVideo: boolean;
 }
 export const defaultPrefs = (): Prefs => ({
   gridView: 'default', daysPerPeriod: 7, densityZoomLevel: 0, weekStartsOn: 0, showWeekends: true, showDeclined: true, showWeekNumbers: false,
   format24HourTime: false, interfaceTheme: 'system', sidebar: true, contextPanel: true, primaryTimeZone: systemTimeZone(), additionalTimeZones: [],
   locale: detectLocale(), defaultEventDuration: 30, collapseAllDaySection: false, todayKey: 'today',
+  upcomingHours: 4, mapsProvider: 'google', askTzUpdate: true, openAtLogin: false, showAdditionalTz: true,
+  notifications: true, defaultReminder: 10, defaultAllDayReminder: -1, notifySound: true, menuBarNext: true, menuBarMaxLen: 32,
+  displayName: '', email: '', videoProvider: 'none', videoUrl: '', autoAddVideo: false,
 });
 export type Overlay = null | 'cmdk' | 'settings' | 'shortcuts' | 'search' | 'goto' | 'recurrence';
 export interface MenuState { kind: 'view' | 'chip' | 'grid' | 'calendar' | 'repeat' | 'busy' | 'visibility' | 'reminder' | 'calendarPick' | 'time' | 'tz' | 'color' | 'evColor' | 'recurrence'; x: number; y: number; data?: any }
@@ -179,7 +185,7 @@ export function redo() { const u = redoStack.pop(); if (u) { u.redo(); undoStack
 export function primaryCalendar() { return state.calendars.find((c) => c.primary && !c.readOnly) ?? state.calendars.find((c) => !c.readOnly) ?? state.calendars[0]; }
 export function createEvent(p: Partial<CalEvent> & { start: number | string; end: number | string; allDay: boolean }, opts: { select?: boolean; draft?: boolean } = {}) {
   const now = Date.now(); const id = newId('ev'); const cal = p.calendarId ?? primaryCalendar()?.id ?? 'cal_personal';
-  const e: CalEvent = { id, uid: `${id}@tempo.local`, calendarId: cal, title: '', status: 'confirmed', transparency: p.allDay ? 'transparent' : 'opaque', timeZone: p.allDay ? undefined : tz(), createdAt: now, updatedAt: now, reminders: p.allDay ? [] : [{ minutes: 10, method: 'notification' }], ...p } as CalEvent;
+  const e: CalEvent = { id, uid: `${id}@tempo.local`, calendarId: cal, title: '', status: 'confirmed', transparency: p.allDay ? 'transparent' : 'opaque', timeZone: p.allDay ? undefined : tz(), createdAt: now, updatedAt: now, reminders: p.allDay ? (state.prefs.defaultAllDayReminder >= 0 ? [{ minutes: state.prefs.defaultAllDayReminder, method: 'notification' as const }] : []) : (state.prefs.defaultReminder >= 0 ? [{ minutes: state.prefs.defaultReminder, method: 'notification' as const }] : []), ...p } as CalEvent;
   apply([e], []);
   const undoFn = record(t('created'), [], [e], [], [id]);
   if (opts.select !== false) setState((s) => ({ selected: [id], editing: id, draftId: opts.draft ? id : null, focusTitle: s.focusTitle + 1, overlay: null, menu: null }));

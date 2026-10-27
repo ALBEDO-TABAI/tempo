@@ -107,8 +107,10 @@ function EventPanel({ occKey }: { occKey: string }) {
   };
   const addGuest = () => {
     const em = guest.trim(); if (!/^\S+@\S+$/.test(em)) return; setGuest('');
-    const list: Attendee[] = [...(ev.attendees ?? [])]; if (!list.some((a) => a.organizer)) list.unshift({ email: 'me@tempo.local', rsvp: 'accepted', organizer: true, self: true });
-    if (!list.some((a) => a.email === em)) list.push({ email: em, rsvp: 'needsAction' }); patch({ attendees: list }, 'all');
+    const list: Attendee[] = [...(ev.attendees ?? [])]; const pr = getState().prefs; if (!list.some((a) => a.organizer)) list.unshift({ email: pr.email || 'me@tempo.local', name: pr.displayName || undefined, rsvp: 'accepted', organizer: true, self: true });
+    if (!list.some((a) => a.email === em)) list.push({ email: em, rsvp: 'needsAction' });
+    const addVideo = pr.autoAddVideo && pr.videoProvider !== 'none' && pr.videoUrl && !ev.conferenceUrl;
+    patch(addVideo ? { attendees: list, conferenceUrl: pr.videoUrl } : { attendees: list }, 'all');
   };
   const showOpts = optsOpen || ev.allDay || !!series || (!!ev.timeZone && ev.timeZone !== tz);
   const menuAt = (kind: any, data: Record<string, unknown> = {}) => (e: React.MouseEvent) => { const r = anchor(e); openMenu({ kind, x: r.left, y: r.bottom + 4, data: { key: occKey, ...data } }); };

@@ -29,7 +29,7 @@ export function CommandMenu() {
   let lastSec = '';
   return (
     <>
-      <div className="scrim" onPointerDown={() => setState({ overlay: null })} />
+      <div className="scrim dim" onPointerDown={() => setState({ overlay: null })} />
       <div className="cmdk" data-testid="cmdk" role="dialog">
         <div className="cmdk-in"><Search size={18} />
           <input autoFocus placeholder={t('typeCommand')} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {

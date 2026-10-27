@@ -143,7 +143,7 @@ function closeCard(id: string) { const w = cards.get(id); cards.delete(id); if (
 function showReminder(p: { id: string; key: string; title: string; body: string; url: string | null; color?: string; labels?: Record<string, string> }) {
   if (cards.has(p.id)) return;
   if (Notification.isSupported() && process.env.TEMPO_TEST !== '1') {
-    const n = new Notification({ title: p.title, body: p.body, silent: false });
+    const n = new Notification({ title: p.title, body: p.body, silent: !!p.silent });
     n.on('click', () => { showWindow(); emit('tray-open', p.key); closeCard(p.id); });
     n.show();
   }
@@ -219,6 +219,7 @@ function registerIpc() {
       case 'tray': updateTray(payload); break;
       case 'notify': showReminder(payload); break;
       case 'card-action': cardAction(payload); break;
+      case 'login-item': if (process.platform === 'darwin' || process.platform === 'win32') app.setLoginItemSettings({ openAtLogin: !!payload }); loginItem = !!payload; break;
     }
   });
   if (process.env.TEMPO_TEST === '1') {
@@ -228,13 +229,14 @@ function registerIpc() {
       if (op === 'cards') return [...cards.keys()];
       if (op === 'cardClick') { const w = [...cards.values()][0]; return w ? w.webContents.executeJavaScript(`(function(){var b=[...document.querySelectorAll('button')].find(function(x){return x.textContent===${JSON.stringify(arg)}}); if(b){b.click(); return true} return false})()`) : false; }
       if (op === 'menuLabels') return Menu.getApplicationMenu()?.items.map((m) => [m.label, m.submenu?.items.map((x) => (x.type === 'separator' ? '—' : x.label))]);
-      return { bounds: win?.getBounds(), min: win?.getMinimumSize(), tray: lastTray, themeSource: nativeTheme.themeSource, bg: win?.getBackgroundColor(), storage: db.kind, visible: win?.isVisible() };
+      return { bounds: win?.getBounds(), min: win?.getMinimumSize(), tray: lastTray, themeSource: nativeTheme.themeSource, bg: win?.getBackgroundColor(), storage: db.kind, visible: win?.isVisible(), loginItem };
     });
   }
   nativeTheme.on('updated', () => emit('native-theme', nativeTheme.shouldUseDarkColors));
 }
 
 // deep links + files can arrive before ready
+let loginItem = false;
 const deepLinks: string[] = [];
 const filesToOpen: string[] = [];
 app.on('open-url', (e, url) => { e.preventDefault(); if (app.isReady()) { showWindow(); emit('deep-link', url); } else deepLinks.push(url); });
