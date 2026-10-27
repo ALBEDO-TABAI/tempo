@@ -80,6 +80,19 @@ ok('light theme -> #FFFFFF window bg', info.themeSource === 'light' && /FFFFFF/i
 await c.shot(`${OUT}E01_window_light.png`);
 // tray
 ok('tray built with next-event tooltip', info.tray && typeof info.tray.tooltip === 'string' && info.tray.tooltip.length > 0, JSON.stringify(info.tray && { title: info.tray.title, tooltip: info.tray.tooltip }));
+// reminder -> card window (renderer reminder loop, 15 s tick)
+await c.evaluate(`(()=>{const s=window.__tempo; const st=s.getState(); const now=Date.now(); const start=Math.ceil((now+5*60000)/60000)*60000; const mins=Math.round((start-now)/60000);
+  const ev={id:'ev_card', uid:'card@tempo', calendarId:st.calendars[0].id, title:'提醒卡片測試', allDay:false, start, end:start+1800000, status:'confirmed', transparency:'opaque', conferenceUrl:'https://example.com/meet', reminders:[{minutes:mins}], createdAt:now, updatedAt:now};
+  s.setState(x=>({events:{...x.events, ev_card: ev}}));})()`);
+let cards = [];
+for (let i = 0; i < 40 && !cards.length; i++) { await sleep(500); cards = await c.evaluate('window.tempo.test("cards")'); }
+ok('reminder opens an always-on-top card window', cards.length === 1, JSON.stringify(cards));
+const tc = (await targets(PORT)).find((x) => /card\.html/.test(x.url));
+if (tc) { const cc = await connect(tc.webSocketDebuggerUrl); await sleep(300); await cc.shot(`${OUT}E02_card.png`); ok('card shows title + Join/Open/Dismiss', (await cc.evaluate('document.body.innerText')).includes('提醒卡片測試') && (await cc.evaluate('[...document.querySelectorAll("button")].map(b=>b.textContent).join()')) === '×,加入,開啟,關閉'); cc.close(); }
+await c.evaluate('window.__tempo.setState({selected:[]})');
+await c.evaluate('window.tempo.test("cardClick","開啟")'); await sleep(500);
+ok('card Open selects the event and closes the card', JSON.stringify(await c.evaluate('window.__tempo.getState().selected')).includes('ev_card') && (await c.evaluate('window.tempo.test("cards")')).length === 0);
+await c.evaluate('window.__tempo.setState(x=>{const e={...x.events}; delete e.ev_card; return {events:e, selected:[]}})');
 // second instance: open .ics + deep link
 const anyKey = await c.evaluate(`(()=>{const e=Object.values(window.__tempo.getState().events).find(e=>!e.rrule&&!e.recurringEventId);return e.id})()`);
 await run('npx', ['electron', '.', '--no-sandbox', ICS]);

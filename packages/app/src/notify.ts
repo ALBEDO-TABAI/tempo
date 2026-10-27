@@ -1,6 +1,6 @@
 // Local reminders (HTML5 notifications) and the menu-bar summary sent to the native shell.
 import { getState, occurrencesIn, tz } from './store';
-import { bridge } from './platform';
+import { bridge, isElectron } from './platform';
 import { t } from './i18n';
 import { timeOf } from './fmt';
 const fired = new Set<string>();
@@ -13,6 +13,8 @@ export function startReminders() {
         const at = o.start - r.minutes * 60000; const id = `${o.key}:${r.minutes}`;
         if (at <= now && now - at < 60000 && !fired.has(id)) {
           fired.add(id);
+          const body = (r.minutes > 0 ? t('startsIn', { n: r.minutes }) : t('startsNow')) + ' · ' + timeOf(o.start, tz(), s.prefs.format24HourTime) + (o.event.location ? ` · ${o.event.location}` : '');
+          if (isElectron) { bridge.send('notify', { id, key: o.key, title: o.event.title || t('noTitle'), body, url: o.event.conferenceUrl || null, color: o.event.color || s.calendars.find((c) => c.id === o.event.calendarId)?.color || '#9A9CFE', labels: { join: t('cardJoin'), open: t('cardOpen'), later: t('cardDismiss') } }); continue; }
           try { if ('Notification' in window && Notification.permission !== 'denied') new Notification(o.event.title || t('noTitle'), { body: timeOf(o.start, tz(), s.prefs.format24HourTime) + (o.event.location ? ` · ${o.event.location}` : ''), silent: false }); } catch { /* ignore */ }
         }
       }

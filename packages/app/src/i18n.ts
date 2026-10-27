@@ -32,7 +32,7 @@ const en = {
   sDay: 'Day', sWeek: 'Week', sMonth: 'Month', sNDays: '2–9 days', sToday: 'Today', sNext: 'Next period', sPrev: 'Previous period',
   sZoomIn: 'Zoom in', sZoomOut: 'Zoom out', sZoomReset: 'Reset zoom', sAllDay: 'Toggle all-day section', sTheme: 'Toggle theme', sSettings: 'Settings',
   sShortcuts: 'Keyboard shortcuts', sSidebar: 'Toggle sidebar', sPanel: 'Toggle side panel', or: 'or', drag: 'drag',
-  welcome: 'Welcome to Tempo', quit: 'Quit Tempo', nextEvent: 'Next: {t}', noUpcoming: 'No upcoming events',
+  welcome: 'Welcome to Tempo', quit: 'Quit Tempo', nextEvent: 'Next: {t}', cardJoin: 'Join', cardOpen: 'Open', cardDismiss: 'Dismiss', startsNow: 'Starting now', startsIn: 'In {n} min', noUpcoming: 'No upcoming events',
   newCalendar: 'New calendar', rename: 'Rename', hideCal: 'Hide', showCal: 'Show', onlyThis: 'Show only this calendar', deleteCalendar: 'Delete calendar',
   jumpTo: 'Jump to', enterDate: 'Type a date, e.g. 2026-11-03', durationMin: '{n} min', durationH: '{n} h', durationHM: '{h} h {m} min', declined: 'Declined',
 } as const;
@@ -69,7 +69,7 @@ const zhTW: Dict = {
   sDay: '天', sWeek: '週', sMonth: '月', sNDays: '2–9 天', sToday: '今天', sNext: '下一期間', sPrev: '上一期間',
   sZoomIn: '放大', sZoomOut: '縮小', sZoomReset: '重設縮放', sAllDay: '切換全天區', sTheme: '切換主題', sSettings: '設定',
   sShortcuts: '鍵盤快速鍵', sSidebar: '切換側邊欄', sPanel: '切換側面板', or: '或', drag: '拖曳',
-  welcome: '歡迎使用 Tempo', quit: '結束 Tempo', nextEvent: '下一個:{t}', noUpcoming: '沒有即將到來的活動',
+  welcome: '歡迎使用 Tempo', quit: '結束 Tempo', nextEvent: '下一個:{t}', cardJoin: '加入', cardOpen: '開啟', cardDismiss: '關閉', startsNow: '即將開始', startsIn: '{n} 分鐘後', noUpcoming: '沒有即將到來的活動',
   newCalendar: '新日曆', rename: '重新命名', hideCal: '隱藏', showCal: '顯示', onlyThis: '只顯示此日曆', deleteCalendar: '刪除日曆',
   jumpTo: '跳至', enterDate: '輸入日期,例如 2026-11-03', durationMin: '{n}分鐘', durationH: '{n}小時', durationHM: '{h}小時{m}分鐘', declined: '已拒絕',
 };
@@ -99,7 +99,7 @@ const zhCN: Dict = {
   sSave: '保存或确认', sSelectAll: '选择所有可见项', sCut: '剪切', sCopy: '拷贝', sDuplicate: '复制', sPaste: '粘贴', sUndo: '撤销', sRedo: '重做',
   sDay: '天', sWeek: '周', sNext: '下一时段', sPrev: '上一时段', sZoomReset: '重置缩放', sAllDay: '切换全天区', sSettings: '设置',
   sShortcuts: '键盘快捷键', sSidebar: '切换侧边栏', sPanel: '切换侧面板', drag: '拖动',
-  welcome: '欢迎使用 Tempo', quit: '退出 Tempo', nextEvent: '下一个:{t}', noUpcoming: '没有即将开始的活动',
+  welcome: '欢迎使用 Tempo', quit: '退出 Tempo', nextEvent: '下一个:{t}', cardJoin: '加入', cardOpen: '打开', cardDismiss: '关闭', startsNow: '即将开始', startsIn: '{n} 分钟后', noUpcoming: '没有即将开始的活动',
   newCalendar: '新日历', rename: '重命名', hideCal: '隐藏', showCal: '显示', onlyThis: '只显示此日历', deleteCalendar: '删除日历',
   jumpTo: '跳转到', enterDate: '输入日期,例如 2026-11-03', declined: '已拒绝',
 };

@@ -3,7 +3,7 @@
  * local SQLite store, native menus that forward ids to the renderer, a menu-bar tray showing the
  * next event, .ics file opening and the tempo:// protocol.
  */
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, protocol, net, shell, dialog, screen, Tray, nativeImage, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Notification, ipcMain, Menu, nativeTheme, protocol, net, shell, dialog, screen, Tray, nativeImage, type MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -132,6 +132,39 @@ async function resetData() {
   db.clear(); rendererReady = false; win?.webContents.reload();
 }
 
+// ---- reminders: native notification + always-on-top card window next to the tray
+const cards = new Map<string, BrowserWindow>();
+const CARD_W = 340, CARD_H = 112;
+function layoutCards() {
+  const wa = screen.getPrimaryDisplay().workArea; let i = 0;
+  for (const w of cards.values()) { if (!w.isDestroyed()) w.setBounds({ x: wa.x + wa.width - CARD_W - 8, y: wa.y + 8 + i++ * (CARD_H - 8), width: CARD_W, height: CARD_H }); }
+}
+function closeCard(id: string) { const w = cards.get(id); cards.delete(id); if (w && !w.isDestroyed()) w.destroy(); layoutCards(); }
+function showReminder(p: { id: string; key: string; title: string; body: string; url: string | null; color?: string; labels?: Record<string, string> }) {
+  if (cards.has(p.id)) return;
+  if (Notification.isSupported() && process.env.TEMPO_TEST !== '1') {
+    const n = new Notification({ title: p.title, body: p.body, silent: false });
+    n.on('click', () => { showWindow(); emit('tray-open', p.key); closeCard(p.id); });
+    n.show();
+  }
+  const w = new BrowserWindow({
+    width: CARD_W, height: CARD_H, frame: false, transparent: true, resizable: false, movable: false, minimizable: false, maximizable: false,
+    alwaysOnTop: true, skipTaskbar: true, focusable: false, show: false, hasShadow: false, type: process.platform === 'darwin' ? 'panel' : undefined,
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true },
+  });
+  w.setAlwaysOnTop(true, 'floating'); w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  cards.set(p.id, w); layoutCards();
+  const q = new URLSearchParams({ id: p.id, key: p.key, title: p.title, body: p.body, url: p.url || '', color: p.color || '', join: p.labels?.join || 'Join', open: p.labels?.open || 'Open', later: p.labels?.later || 'Dismiss' });
+  w.loadURL(DEV_URL ? `${DEV_URL}/card.html?${q}` : `${SCHEME}://app/card.html?${q}`);
+  w.once('ready-to-show', () => { if (process.env.TEMPO_HIDDEN !== '1') w.showInactive(); });
+  setTimeout(() => closeCard(p.id), 5 * 60000);
+}
+function cardAction(a: { id: string; key: string; url: string; action: string }) {
+  if (a.action === 'join' && /^https?:/.test(a.url)) shell.openExternal(a.url);
+  if (a.action === 'open') { showWindow(); emit('tray-open', a.key); }
+  closeCard(a.id);
+}
+
 let trayKey: string | null = null;
 let lastTray: unknown = null;
 function updateTray(p: { title: string; tooltip: string; key: string | null }) {
@@ -184,12 +217,16 @@ function registerIpc() {
       }
       case 'locale': L = labels(String(payload || 'en')); buildMenu(); break;
       case 'tray': updateTray(payload); break;
+      case 'notify': showReminder(payload); break;
+      case 'card-action': cardAction(payload); break;
     }
   });
   if (process.env.TEMPO_TEST === '1') {
     // test-only introspection, used by packages/parity/electron.mjs
     ipcMain.handle('tempo:test', (_e, op: string, arg?: string) => {
       if (op === 'menu') { const it = Menu.getApplicationMenu()?.getMenuItemById(arg!); if (!it) return false; it.click(); return true; }
+      if (op === 'cards') return [...cards.keys()];
+      if (op === 'cardClick') { const w = [...cards.values()][0]; return w ? w.webContents.executeJavaScript(`(function(){var b=[...document.querySelectorAll('button')].find(function(x){return x.textContent===${JSON.stringify(arg)}}); if(b){b.click(); return true} return false})()`) : false; }
       if (op === 'menuLabels') return Menu.getApplicationMenu()?.items.map((m) => [m.label, m.submenu?.items.map((x) => (x.type === 'separator' ? '—' : x.label))]);
       return { bounds: win?.getBounds(), min: win?.getMinimumSize(), tray: lastTray, themeSource: nativeTheme.themeSource, bg: win?.getBackgroundColor(), storage: db.kind, visible: win?.isVisible() };
     });
