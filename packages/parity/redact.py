@@ -16,7 +16,9 @@ for e in d['els']:
     if w <= 0 or h <= 0: continue
     if e['tag'] == 'BUTTON' and 'border-radius' in e['st'] and e['st'].get('border-radius') == '50%' and y < 50 and 20 <= w <= 30: add(e['r'], 2)  # avatar
     if not t: continue
-    if h <= 48 and ('@' in t or 'Notion' in t or "'s " in t or "’s " in t): add(e['r'])
+    if h <= 48 and ('@' in t or 'Notion' in t or "'s " in t or "’s " in t):
+        add(e['r'])
+        if 244 <= x <= 330: add((x - 40, y - 6, 36, h + 12), 0)  # account/workspace avatar left of a masked nav label
     # event titles that are not the synthetic test events
     if ('sc-1axd7p-6' in e['sc'] or 'sc-1axd7p-7' in e['sc']) and not t.startswith('REA') and h <= 40: add(e['r'], 1)
     # sidebar calendar list (below the mini month) when the sidebar is open

@@ -58,7 +58,7 @@ function editField(k: string): boolean {
   requestAnimationFrame(go); return true;
 }
 /** ⌘J: open the video link of the selected event, or of the next event with one today. */
-function joinNext(): boolean {
+export function joinNext(): boolean {
   const s = getState(); const now = Date.now();
   const sel = s.selected.length === 1 ? occurrencesIn(s.today - 400, s.today + 400).find((o) => o.key === s.selected[0]) : undefined;
   const o = sel?.event.conferenceUrl ? sel : occurrencesIn(s.today, s.today + 1).filter((x) => x.event.conferenceUrl && x.end > now).sort((a, b) => a.start - b.start)[0];
@@ -117,6 +117,7 @@ export function handleKey(e: KeyboardEvent): boolean {
     case 'k': case 'p': case 'ArrowLeft': step(-1); return true;
     case 'c': newEventNow(); return true;
     case 's': toggleAvailability(); return true;
+    case 'z': if (!s.prefs.additionalTimeZones.length) return false; setPrefs({ showAdditionalTz: !s.prefs.showAdditionalTz }); return true;
     case '\\': case '`': return runCommand('sidebar');
     case '?': openOverlay('shortcuts'); return true;
     case '/': openOverlay('search'); return true;

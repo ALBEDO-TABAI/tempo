@@ -3,7 +3,7 @@
  * local SQLite store, native menus that forward ids to the renderer, a menu-bar tray showing the
  * next event, .ics file opening and the tempo:// protocol.
  */
-import { app, BrowserWindow, Notification, ipcMain, Menu, nativeTheme, protocol, net, shell, dialog, screen, Tray, nativeImage, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Notification, ipcMain, Menu, nativeTheme, protocol, net, shell, dialog, screen, Tray, nativeImage, globalShortcut, type MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -188,6 +188,15 @@ function updateTray(p: { title: string; tooltip: string; key: string | null }) {
   ]));
 }
 
+/** System-wide hotkeys: ⌃⌘K pops the menu-bar calendar, ⌃⌘J joins the next video call (⌃⌥ elsewhere). */
+const globalKeys: Record<string, boolean> = {};
+function registerGlobalKeys() {
+  const mod = process.platform === 'darwin' ? 'Control+Command' : 'Control+Alt';
+  try { globalKeys.tray = globalShortcut.register(`${mod}+K`, () => { if (tray && process.platform !== 'linux') tray.popUpContextMenu(); else showWindow(); }); } catch { globalKeys.tray = false; }
+  try { globalKeys.join = globalShortcut.register(`${mod}+J`, () => emit('menu', 'joinNext')); } catch { globalKeys.join = false; }
+}
+app.on('will-quit', () => globalShortcut.unregisterAll());
+
 function openIcsPath(p: string) {
   try { const text = fs.readFileSync(p, 'utf8'); showWindow(); emit('open-file', { name: path.basename(p), text }); } catch (e) { console.error('[tempo] open-file', e); }
 }
@@ -229,7 +238,7 @@ function registerIpc() {
       if (op === 'cards') return [...cards.keys()];
       if (op === 'cardClick') { const w = [...cards.values()][0]; return w ? w.webContents.executeJavaScript(`(function(){var b=[...document.querySelectorAll('button')].find(function(x){return x.textContent===${JSON.stringify(arg)}}); if(b){b.click(); return true} return false})()`) : false; }
       if (op === 'menuLabels') return Menu.getApplicationMenu()?.items.map((m) => [m.label, m.submenu?.items.map((x) => (x.type === 'separator' ? '—' : x.label))]);
-      return { bounds: win?.getBounds(), min: win?.getMinimumSize(), tray: lastTray, themeSource: nativeTheme.themeSource, bg: win?.getBackgroundColor(), storage: db.kind, visible: win?.isVisible(), loginItem };
+      return { bounds: win?.getBounds(), min: win?.getMinimumSize(), tray: lastTray, themeSource: nativeTheme.themeSource, bg: win?.getBackgroundColor(), storage: db.kind, visible: win?.isVisible(), loginItem, globalKeys };
     });
   }
   nativeTheme.on('updated', () => emit('native-theme', nativeTheme.shouldUseDarkColors));
@@ -261,7 +270,7 @@ else {
       if (!file.startsWith(APP_DIST)) return new Response('forbidden', { status: 403 });
       return net.fetch(pathToFileURL(fs.existsSync(file) ? file : path.join(APP_DIST, 'index.html')).toString());
     });
-    registerIpc(); buildMenu(); createWindow();
+    registerIpc(); buildMenu(); createWindow(); registerGlobalKeys();
     for (const u of deepLinks.splice(0)) emit('deep-link', u);
     for (const p of [...filesToOpen.splice(0), ...process.argv.slice(1).filter((a) => /\.(ics|vcs)$/i.test(a))]) openIcsPath(p);
     for (const a of process.argv.slice(1)) if (a.startsWith(`${SCHEME}://`)) emit('deep-link', a);

@@ -19,14 +19,14 @@ export function Panel() {
     <aside className="panel" data-testid="panel">
       <div className="panel-head">
         <div className={`search${searching ? ' active' : ''}`}>
-          <Search size={18} />
+          <Search size={12} strokeWidth={2.4} />
           <input ref={inp} data-testid="search" placeholder={s.overlay === 'shortcuts' ? t('searchShortcuts') : t('search')} value={s.q}
             onFocus={() => { if (!searching) setState({ overlay: 'search' }); }}
             onChange={(e) => setState({ searchQuery: e.target.value })}
             onKeyDown={(e) => { if (e.key === 'Escape') { setState({ overlay: null, searchQuery: '' }); inp.current?.blur(); } e.stopPropagation(); }} />
-          {searching && <button className="ibtn xs" style={{ position: 'absolute', right: 5, top: 5 }} onClick={() => setState({ overlay: null, searchQuery: '' })}><X size={14} /></button>}
+          {searching && s.q && <button className="ibtn xs" style={{ position: 'absolute', right: 5, top: 5 }} onClick={() => setState({ overlay: null, searchQuery: '' })}><X size={14} /></button>}
         </div>
-        <button className="ibtn" onClick={() => setPrefs({ contextPanel: false })}><PanelRight size={18} /></button>
+        {s.overlay !== 'shortcuts' && <button className="ibtn" onClick={() => setPrefs({ contextPanel: false })}><PanelRight size={18} /></button>}
       </div>
       <div style={{ height: 21, flex: 'none' }} />
       <div className="panel-body">

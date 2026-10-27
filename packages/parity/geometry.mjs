@@ -27,7 +27,7 @@ const report = []; let worst = 0; let n = 0; let sum = 0;
 for (const c of CASES) {
   const ref = JSON.parse(fs.readFileSync(`${REF}/${c.ref}.json`, 'utf8'));
   const page = await browser.newPage({ viewport: { width: ref.vw, height: ref.vh } });
-  await page.goto(`${BASE}?harness=1&storage=memory${Q}${c.q}`); await page.waitForFunction(() => window.__tempoReady); await page.waitForTimeout(300);
+  await page.goto(`${BASE}?harness=1&storage=memory&platform=mac${Q}${c.q}`); await page.waitForFunction(() => window.__tempoReady); await page.waitForTimeout(300);
   const mine = await page.evaluate(() => {
     const R = (el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; };
     return {

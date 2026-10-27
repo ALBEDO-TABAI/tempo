@@ -44,5 +44,5 @@ const memoryOnly = new URLSearchParams(location.search).get('storage') === 'memo
 if (memoryOnly) { mem = { accounts: {}, calendars: {}, events: {}, prefs: null }; }
 const memBridge: NativeBridge = { ...browser, async load() { return { accounts: [], calendars: [], events: [], prefs: null }; }, async put() {}, async del() {}, async putPrefs() {} };
 export const bridge: NativeBridge = memoryOnly ? memBridge : (window.tempo ?? browser);
-export const isMac = /Mac/.test(navigator.platform) || bridge.platform === 'darwin';
+export const isMac = /Mac/.test(navigator.platform) || bridge.platform === 'darwin' || new URLSearchParams(location.search).get('platform') === 'mac';
 export const isElectron = !!window.tempo;

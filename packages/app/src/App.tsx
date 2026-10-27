@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore, isDark, getState, setState, importIcsText, findOccurrence, select, goToDay, setPrefs, zoom, openOverlay } from './store';
-import { handleKey, runCommand, selectAllVisible } from './commands';
+import { handleKey, runCommand, selectAllVisible, joinNext } from './commands';
 import { bridge } from './platform';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -36,6 +36,7 @@ export function App() {
           case 'undo': undo(); break; case 'redo': redo(); break; case 'selectAll': selectAllVisible(); break;
           case 'copy': copyOccurrences(getState().selected); break; case 'cut': copyOccurrences(getState().selected, true); break; case 'paste': paste(); break;
           case 'duplicate': duplicateOccurrences(getState().selected); break; case 'delete': deleteOccurrences(getState().selected); break;
+          case 'joinNext': joinNext(); break;
           case 'zoomIn': zoom(1); break; case 'zoomOut': zoom(-1); break; case 'zoomReset': zoom(0); break;
           default: runCommand(id);
         }

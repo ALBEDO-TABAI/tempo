@@ -162,7 +162,7 @@ input, textarea { font: inherit; color: inherit; }
 .mcell.wknd { background: var(--g-wk); }
 .mnum { position: absolute; top: 5px; right: 3px; min-width: 17px; height: 16px; padding: 0 3px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 400; border-radius: 4px; white-space: nowrap; }
 .mnum strong { font-weight: 600; margin-right: 3px; }
-.mcell.out .mnum { color: var(--c-text2); }
+.mcell.out .mnum { color: var(--c-text); opacity: .25; }
 .mnum:hover { background: var(--c-hover); }
 .mnum.today { background: var(--c-accent); color: #fff; font-weight: 500; height: 19px; line-height: 19px; top: 3.5px; }
 .mmore { position: absolute; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--c-text); }
@@ -174,12 +174,13 @@ input, textarea { font: inherit; color: inherit; }
 .search { position: relative; flex: 1; height: 30px; }
 .search input { width: 100%; height: 30px; border: 0; outline: 0; border-radius: 6px; padding: 6px 28px 6px 34px; font-size: 13px; line-height: 18px; background: transparent; }
 .search input:focus, .search.active input { background: var(--c-input); }
-.search svg { position: absolute; left: 8px; top: 6px; color: var(--c-text3); }
+.search svg { position: absolute; left: 11px; top: 9px; color: var(--c-text3); }
 .panel-body { flex: 1; min-height: 0; overflow-y: auto; }
 .ps { padding: 10px 8px; }
 .ps-title { height: 30px; display: flex; align-items: center; padding: 0 2px 0 8px; font-size: 13px; line-height: 18px; font-weight: 500; }
 .ps-list { list-style: none; margin: 2px 0 0; padding: 0 8px; }
-.ps-list li { height: 16px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; padding-right: 2px; font-size: 12px; line-height: 16px; color: var(--c-text2); }
+.ps-grp { margin-bottom: 42px; } .ps-list li.sub { margin-top: 10px; } .ps-list li.link { color: var(--c-text2); font-weight: 500; padding-left: 15px; cursor: default; } .ps-list .or { margin: 0 3px; }
+.ps-list li { height: 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; padding-right: 2px; font-size: 12px; line-height: 16px; color: var(--c-text2); }
 .ps-list li:hover { color: var(--c-text); }
 .ps-sec { font-size: 13px; line-height: 18px; font-weight: 500; padding: 8px 8px 6px; }
 .ev { padding: 0 0 24px; }

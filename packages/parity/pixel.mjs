@@ -46,7 +46,7 @@ for (const c of CASES.filter((c) => !ONLY || ONLY.test(c.name))) {
   const refJ = JSON.parse(fs.readFileSync(`${REF}/${c.ref}.json`, 'utf8'));
   const side = refJ.els.some((e) => e.text.trim() === '2026十月' && e.r[0] >= 0 && e.r[0] < 240); // the reference run left the sidebar toggled in some states
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
-  await page.goto(`${BASE}?harness=1&storage=memory${Q}${c.q}${/sidebar=/.test(c.q) ? '' : `&sidebar=${side ? 1 : 0}`}`); await page.waitForFunction(() => window.__tempoReady); await page.waitForTimeout(350);
+  await page.goto(`${BASE}?harness=1&storage=memory&platform=mac${Q}${c.q}${/sidebar=/.test(c.q) ? '' : `&sidebar=${side ? 1 : 0}`}`); await page.waitForFunction(() => window.__tempoReady); await page.waitForTimeout(350);
   if (c.js) { await page.evaluate(c.js); await page.waitForTimeout(450); }
   await page.mouse.move(1439, 899);
   const mineF = `${OUT}${c.name}_tempo.png`; await page.screenshot({ path: mineF }); await page.close();

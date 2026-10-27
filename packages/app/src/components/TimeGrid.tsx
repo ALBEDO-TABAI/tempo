@@ -28,7 +28,7 @@ export function TimeGrid() {
   // one overscan day each side (clipped), so bars and lines continue past the visible edge like the reference
   const cols = useMemo(() => (n ? [days[0] - 1, ...days, days[n - 1] + 1] : []), [days, n]);
   const xOf = (d: DayNum) => gutter + (cols.indexOf(d) - 1) * cw;
-  const gutter = gutterWidth(1 + s.prefs.additionalTimeZones.length, size.w);
+  const gutter = gutterWidth(1 + (s.prefs.showAdditionalTz ? s.prefs.additionalTimeZones.length : 0), size.w);
   const cw = colWidth(size.w, gutter, n);
   const available = Math.max(0, size.h - G.colHeader - G.allDayBase);
   const hourH = hourHeight(s.prefs.densityZoomLevel, available);
@@ -223,7 +223,7 @@ export function TimeGrid() {
     if (o && ti >= 0) adPreview = <Chip occ={o} kind="allday" x={gutter + fi * cw} y={G.allDayPadTop} w={(ti - fi + 1) * cw - G.chipMarginRight} h={G.allDayChip} layer={100} moving />;
   }
 
-  const tzs = [tz, ...s.prefs.additionalTimeZones];
+  const tzs = [tz, ...(s.prefs.showAdditionalTz ? s.prefs.additionalTimeZones : [])];
   return (
     <div className="gridwrap" ref={wrap} data-testid="timegrid" data-colw={cw} data-hourh={hourH} data-gutter={gutter}>
       <div className="colheads" style={{ height: G.colHeader }}>
