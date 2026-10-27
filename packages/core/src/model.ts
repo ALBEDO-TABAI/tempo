@@ -74,13 +74,13 @@ export function occurrences(events: CalEvent[], fromDay: DayNum, toDayExcl: DayN
       const o = ov?.get(origKey) ?? ov?.get(String(st));
       if (o) {
         const os = o.allDay ? toDay(o.start) : (o.start as number), oe = o.allDay ? toDay(o.end) : (o.end as number);
-        push(o, os, oe, `${ev.id}_${origKey}`, ev.id);
-      } else push(ev, st, st + dur, `${ev.id}_${origKey}`, ev.id);
+        push(o, os, oe, `${ev.id}|${origKey}`, ev.id);
+      } else push(ev, st, st + dur, `${ev.id}|${origKey}`, ev.id);
     }
     // overrides moved into the window from outside
-    if (ov) for (const [k, o] of ov) if (!out.some((x) => x.key === `${ev.id}_${k}`)) {
+    if (ov) for (const [k, o] of ov) if (!out.some((x) => x.key === `${ev.id}|${k}`)) {
       const os = o.allDay ? toDay(o.start) : (o.start as number), oe = o.allDay ? toDay(o.end) : (o.end as number);
-      push(o, os, oe, `${ev.id}_${k}`, ev.id);
+      push(o, os, oe, `${ev.id}|${k}`, ev.id);
     }
   }
   return out.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));

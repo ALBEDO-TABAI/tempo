@@ -5,3 +5,4 @@ packages/tokens/generated/
 packages/parity/out/
 *.log
 .DS_Store
+packages/parity/node_modules
