@@ -8,26 +8,26 @@ The reference half of every side-by-side is redacted (account, calendar list, ot
 
 | state | pixel | layout | side-by-side |
 |---|---:|---:|---|
-| week_dark | 99.03% | 96.92% | [png](week_dark.png) |
-| 3day_dark | 99.06% | 97.05% | [png](3day_dark.png) |
-| day_fri_dark | 99.05% | 97.11% | [png](day_fri_dark.png) |
-| month_dark | 96.85% | 91.51% | [png](month_dark.png) |
-| cmdk_dark | 98.26% | 94.6% | [png](cmdk_dark.png) |
-| view_menu_dark | 96.95% | 93.17% | [png](view_menu_dark.png) |
-| settings_dark | 98.5% | 95.15% | [png](settings_dark.png) |
-| shortcuts_dark | 96.25% | 89.37% | [png](shortcuts_dark.png) |
+| week_dark | 99.01% | 96.74% | [png](week_dark.png) |
+| 3day_dark | 99.04% | 96.87% | [png](3day_dark.png) |
+| day_fri_dark | 99.04% | 96.93% | [png](day_fri_dark.png) |
+| month_dark | 96.85% | 91.42% | [png](month_dark.png) |
+| cmdk_dark | 98.24% | 94.44% | [png](cmdk_dark.png) |
+| view_menu_dark | 96.93% | 92.99% | [png](view_menu_dark.png) |
+| settings_dark | 98.5% | 95.08% | [png](settings_dark.png) |
+| shortcuts_dark | 96.22% | 89.52% | [png](shortcuts_dark.png) |
 | search_dark | 96.97% | 93.07% | [png](search_dark.png) |
-| sidebar_hidden_dark | 96.87% | 94.23% | [png](sidebar_hidden_dark.png) |
-| panel_event_dark | 98.64% | 96.14% | [png](panel_event_dark.png) |
-| week_light | 98.95% | 96.83% | [png](week_light.png) |
-| 3day_light | 98.99% | 96.85% | [png](3day_light.png) |
-| day_fri_light | 98.99% | 96.91% | [png](day_fri_light.png) |
-| month_light | 98.33% | 91.39% | [png](month_light.png) |
-| cmdk_light | 98.74% | 95.49% | [png](cmdk_light.png) |
-| view_menu_light | 99.07% | 96.52% | [png](view_menu_light.png) |
-| settings_light | 98.02% | 93.49% | [png](settings_light.png) |
-| shortcuts_light | 98.37% | 92.28% | [png](shortcuts_light.png) |
+| sidebar_hidden_dark | 96.86% | 94.05% | [png](sidebar_hidden_dark.png) |
+| panel_event_dark | 98.64% | 96.16% | [png](panel_event_dark.png) |
+| week_light | 98.94% | 96.66% | [png](week_light.png) |
+| 3day_light | 98.98% | 96.68% | [png](3day_light.png) |
+| day_fri_light | 98.98% | 96.74% | [png](day_fri_light.png) |
+| month_light | 98.33% | 91.3% | [png](month_light.png) |
+| cmdk_light | 98.73% | 95.33% | [png](cmdk_light.png) |
+| view_menu_light | 99.07% | 96.34% | [png](view_menu_light.png) |
+| settings_light | 98.01% | 93.44% | [png](settings_light.png) |
+| shortcuts_light | 98.33% | 92.47% | [png](shortcuts_light.png) |
 | search_light | 99.11% | 96.3% | [png](search_light.png) |
-| sidebar_hidden_light | 98.69% | 94.94% | [png](sidebar_hidden_light.png) |
-| panel_event_light | 98.67% | 96.16% | [png](panel_event_light.png) |
-| **mean** | **98.3%** | **94.8%** | |
+| sidebar_hidden_light | 98.68% | 94.77% | [png](sidebar_hidden_light.png) |
+| panel_event_light | 98.67% | 96.18% | [png](panel_event_light.png) |
+| **mean** | **98.3%** | **94.7%** | |
