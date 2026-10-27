@@ -304,3 +304,12 @@ html.dark .toast { background: rgb(37, 37, 37); }
 .rec-ends { display: flex; flex-direction: column; gap: 8px; } .rec-ends label { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .rec-sum { margin: 12px 0; padding: 8px 10px; border-radius: 6px; background: var(--c-input); color: var(--c-text2); font-size: 12px; line-height: 16px; }
 .dialog .opts.end { flex-direction: row; justify-content: flex-end; gap: 8px; }
+
+/* share availability */
+.avslot { position: absolute; left: 1px; right: 4px; z-index: 290; border-radius: 4px; background: color-mix(in srgb, var(--c-blue, #2383e2) 14%, transparent); box-shadow: inset 0 0 0 1.5px var(--c-blue, #2383e2); color: var(--c-blue, #2383e2); font-size: 11px; line-height: 13px; font-weight: 500; padding: 3px 18px 0 5px; overflow: hidden; white-space: nowrap; }
+.avslot button { position: absolute; top: 1px; right: 1px; width: 16px; height: 16px; border-radius: 3px; color: inherit; display: flex; align-items: center; justify-content: center; }
+.avslot button:hover { background: color-mix(in srgb, var(--c-blue, #2383e2) 20%, transparent); }
+.av-list { list-style: none; margin: 0; padding: 0 8px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 18px; }
+.av-list li { display: flex; align-items: center; justify-content: space-between; height: 28px; padding: 0 0 0 8px; border-radius: 6px; } .av-list li:hover { background: var(--c-hover); }
+.av-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 8px; }
+.btn.sm { height: 24px; padding: 0 8px; font-size: 12px; }

@@ -6,11 +6,12 @@ import { longDate, panelTime, durationLabel, gmtLabel, ruleLabel } from '../fmt'
 import { t } from '../i18n';
 import { MOD } from '../commands';
 import { ShortcutList } from './Shortcuts';
+import { stopAvailability, removeSlot, fillFree, copyAvailability, createHolds, clearSlots } from '../availability';
 
 export function Kbd({ keys }: { keys: string[] }) { return <span className="kbds">{keys.map((k, i) => <kbd key={i} className="kbd">{k}</kbd>)}</span>; }
 
 export function Panel() {
-  const s = useStore((x) => ({ editing: x.editing, overlay: x.overlay, q: x.searchQuery, n: x.selected.length }));
+  const s = useStore((x) => ({ editing: x.editing, overlay: x.overlay, q: x.searchQuery, n: x.selected.length, avail: x.avail.active }));
   const inp = useRef<HTMLInputElement>(null);
   const searching = s.overlay === 'search' || s.overlay === 'shortcuts';
   useEffect(() => { if (searching) inp.current?.focus(); }, [searching]);
@@ -29,9 +30,27 @@ export function Panel() {
       </div>
       <div style={{ height: 21, flex: 'none' }} />
       <div className="panel-body">
-        {s.overlay === 'shortcuts' ? <ShortcutList filter={s.q} /> : s.overlay === 'search' ? <SearchResults q={s.q} /> : s.editing ? <EventPanel key={s.editing} occKey={s.editing} /> : <Useful />}
+        {s.overlay === 'shortcuts' ? <ShortcutList filter={s.q} /> : s.overlay === 'search' ? <SearchResults q={s.q} /> : s.avail ? <AvailabilityPanel /> : s.editing ? <EventPanel key={s.editing} occKey={s.editing} /> : <Useful />}
       </div>
     </aside>
+  );
+}
+
+function AvailabilityPanel() {
+  const a = useStore((x) => x.avail); const z = getState().prefs.primaryTimeZone; const h24 = getState().prefs.format24HourTime;
+  return (
+    <div className="ps avail" data-testid="availpanel">
+      <div className="ps-title" style={{ display: 'flex', alignItems: 'center' }}><span style={{ flex: 1 }}>{t('shareAvail')}</span><button className="btn sm" onClick={stopAvailability}>{t('exitAvail')}</button></div>
+      <div className="set-note" style={{ padding: '0 8px 8px' }}>{t('availHint')}</div>
+      {a.slots.length ? <ul className="av-list">{a.slots.map((x, i) => <li key={i}><span className="tnum">{longDate(dayOf(x.start, z))} · {panelTime(x.start, z, h24)} – {panelTime(x.end, z, h24)}</span><button className="ibtn xs" onClick={() => removeSlot(i)}><X size={12} /></button></li>)}</ul>
+        : <div className="set-note" style={{ padding: '4px 8px' }}>{t('noSlots')}</div>}
+      <div className="av-actions">
+        <button className="btn" data-testid="av-fill" onClick={fillFree}>{t('fillFree')}</button>
+        <button className="btn primary" data-testid="av-copy" disabled={!a.slots.length} onClick={() => { void copyAvailability(); }}>{t('copyText')}</button>
+        <button className="btn" data-testid="av-holds" disabled={!a.slots.length} onClick={() => createHolds()}>{t('createHolds')}</button>
+        <button className="btn" disabled={!a.slots.length} onClick={clearSlots}>{t('clearAll')}</button>
+      </div>
+    </div>
   );
 }
 
@@ -104,34 +123,34 @@ function EventPanel({ occKey }: { occKey: string }) {
       <div className="ev-sec">
         {ev.allDay ? <div className="ev-r"><div className="ev-f"><Clock size={18} /><DateField occ={occ} disabled={ro} label={`${longDate(occ.startDay)}${occ.endDay > occ.startDay ? ` → ${longDate(occ.endDay)}` : ''}`} onChange={(d) => { const len = occ.endDay - occ.startDay; patch({ start: isoDate(d), end: isoDate(d + len + 1) }); }} /></div></div> : <>
           <div className="ev-r">
-            <button className="ev-f ev-t1 tnum" data-testid="ev-start" disabled={ro} onClick={menuAt('time', { edge: 'start' })}><Clock size={18} /><span>{panelTime(occ.start, tz, h24)}</span></button>
-            <button className="ev-f ev-t2 tnum" data-testid="ev-end" disabled={ro} onClick={menuAt('time', { edge: 'end' })}><ArrowRight size={16} /><span>{panelTime(occ.end, tz, h24)}</span><span className="dur">{durationLabel(dur, t)}</span></button>
+            <button className="ev-f ev-t1 tnum" data-testid="ev-start" data-field="s" disabled={ro} onClick={menuAt('time', { edge: 'start' })}><Clock size={18} /><span>{panelTime(occ.start, tz, h24)}</span></button>
+            <button className="ev-f ev-t2 tnum" data-testid="ev-end" data-field="e" disabled={ro} onClick={menuAt('time', { edge: 'end' })}><ArrowRight size={16} /><span>{panelTime(occ.end, tz, h24)}</span><span className="dur">{durationLabel(dur, t)}</span></button>
           </div>
           <div className="ev-r ind"><DateField occ={occ} disabled={ro} onChange={(d) => { const delta = startOfDayMs(d, tz) - startOfDayMs(occ.startDay, tz); patch({ start: occ.start + delta, end: occ.end + delta }); }} /></div></>}
-        {!showOpts ? <div className="ev-r ind"><button className="ev-f ev-opts" data-testid="ev-opts" disabled={ro} onClick={() => setOptsOpen(true)}><span>{t('allDay')}</span><span>{t('timeZone')}</span><span>{t('repeat')}</span></button></div> : <>
-          <div className="ev-r"><button className="ev-f" data-testid="ev-allday" disabled={ro} onClick={toggleAllDay}><span className={`tgl${ev.allDay ? ' on' : ''}`}><i /></span><span className={ev.allDay ? '' : 'dim'}>{t('allDay')}</span></button></div>
-          {!ev.allDay && <div className="ev-r"><button className="ev-f" data-testid="ev-tz" disabled={ro} onClick={menuAt('tz')}><Globe size={18} /><span className="dim">{gmtLabel(evTz)}</span><span>&nbsp;{evTz.split('/').pop()!.replace(/_/g, ' ')}</span></button></div>}
-          <div className="ev-r"><button className="ev-f" data-testid="ev-repeat" disabled={ro} onClick={menuAt('repeat')}><Repeat size={18} /><span className={series ? '' : 'dim'}>{series ? ruleText : t('repeat')}</span></button></div></>}
+        {!showOpts ? <div className="ev-r ind"><button className="ev-f ev-opts" data-testid="ev-opts" data-field="x" disabled={ro} onClick={() => setOptsOpen(true)}><span>{t('allDay')}</span><span>{t('timeZone')}</span><span>{t('repeat')}</span></button></div> : <>
+          <div className="ev-r"><button className="ev-f" data-testid="ev-allday" data-field="a" disabled={ro} onClick={toggleAllDay}><span className={`tgl${ev.allDay ? ' on' : ''}`}><i /></span><span className={ev.allDay ? '' : 'dim'}>{t('allDay')}</span></button></div>
+          {!ev.allDay && <div className="ev-r"><button className="ev-f" data-testid="ev-tz" data-field="z" disabled={ro} onClick={menuAt('tz')}><Globe size={18} /><span className="dim">{gmtLabel(evTz)}</span><span>&nbsp;{evTz.split('/').pop()!.replace(/_/g, ' ')}</span></button></div>}
+          <div className="ev-r"><button className="ev-f" data-testid="ev-repeat" data-field="r" disabled={ro} onClick={menuAt('repeat')}><Repeat size={18} /><span className={series ? '' : 'dim'}>{series ? ruleText : t('repeat')}</span></button></div></>}
       </div>
       <div className="ev-sec">
-        <div className="ev-r"><div className="ev-f"><Users size={18} /><input placeholder={t('addParticipants')} value={guest} disabled={ro} onChange={(e) => setGuest(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); e.stopPropagation(); }} /></div></div>
+        <div className="ev-r"><div className="ev-f"><Users size={18} /><input data-field="p" placeholder={t('addParticipants')} value={guest} disabled={ro} onChange={(e) => setGuest(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); e.stopPropagation(); }} /></div></div>
         {ev.attendees?.map((a) => (
           <div key={a.email} className="ev-r ind"><div className="ev-f"><span className="att">{a.name || a.email}{a.organizer ? <span className="dim"> · {t('organizer')}</span> : null}</span>
             {!a.organizer && !ro && <button className="ibtn xs" onClick={() => patch({ attendees: ev.attendees!.filter((x) => x.email !== a.email) }, 'all')}><X size={12} /></button>}</div></div>
         ))}
-        <div className="ev-r"><div className="ev-f"><Video size={18} /><input placeholder={t('conferencing')} defaultValue={ev.conferenceUrl ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.conferenceUrl ?? '')) patch({ conferenceUrl: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div>
-        <div className="ev-r"><button className="ev-f" data-testid="ev-color" disabled={ro} onClick={menuAt('evColor')}><Palette size={18} /><span className={ev.color ? '' : 'dim'}>{ev.color ? (PALETTE.find((c) => c.hex === ev.color?.toUpperCase())?.name ?? ev.color) : t('eventColor')}</span>{ev.color && <span className="ev-sw" style={{ ['--sw' as any]: fam.backgroundPrimary, marginLeft: 2 }} />}</button></div>
-        <div className="ev-r"><div className="ev-f"><MapPin size={18} /><input placeholder={t('location')} value={loc} disabled={ro} onChange={(e) => setLoc(e.target.value)} onBlur={() => { if (loc !== (ev.location ?? '')) patch({ location: loc || undefined }, 'all'); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLElement).blur(); e.stopPropagation(); }} /></div></div>
+        <div className="ev-r"><div className="ev-f"><Video size={18} /><input data-field="v" placeholder={t('conferencing')} defaultValue={ev.conferenceUrl ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.conferenceUrl ?? '')) patch({ conferenceUrl: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div>
+        <div className="ev-r"><button className="ev-f" data-testid="ev-color" data-field="o" disabled={ro} onClick={menuAt('evColor')}><Palette size={18} /><span className={ev.color ? '' : 'dim'}>{ev.color ? (PALETTE.find((c) => c.hex === ev.color?.toUpperCase())?.name ?? ev.color) : t('eventColor')}</span>{ev.color && <span className="ev-sw" style={{ ['--sw' as any]: fam.backgroundPrimary, marginLeft: 2 }} />}</button></div>
+        <div className="ev-r"><div className="ev-f"><MapPin size={18} /><input data-field="l" placeholder={t('location')} value={loc} disabled={ro} onChange={(e) => setLoc(e.target.value)} onBlur={() => { if (loc !== (ev.location ?? '')) patch({ location: loc || undefined }, 'all'); }} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLElement).blur(); e.stopPropagation(); }} /></div></div>
       </div>
-      <div className="ev-sec"><div className="ev-r"><div className="ev-f"><Link2 size={18} /><input placeholder={t('addLink')} defaultValue={ev.url ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.url ?? '')) patch({ url: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div></div>
-      <div className="ev-sec"><div className="ev-r auto"><div className="ev-f noicon"><textarea rows={Math.min(12, Math.max(1, desc.split('\n').length))} placeholder={t('description')} value={desc} disabled={ro} onChange={(e) => setDesc(e.target.value)} onBlur={() => { if (desc !== (ev.description ?? '')) patch({ description: desc || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div></div>
+      <div className="ev-sec"><div className="ev-r"><div className="ev-f"><Link2 size={18} /><input data-field="u" placeholder={t('addLink')} defaultValue={ev.url ?? ''} disabled={ro} onBlur={(e) => { if (e.target.value !== (ev.url ?? '')) patch({ url: e.target.value || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div></div>
+      <div className="ev-sec"><div className="ev-r auto"><div className="ev-f noicon"><textarea data-field="n" rows={Math.min(12, Math.max(1, desc.split('\n').length))} placeholder={t('description')} value={desc} disabled={ro} onChange={(e) => setDesc(e.target.value)} onBlur={() => { if (desc !== (ev.description ?? '')) patch({ description: desc || undefined }, 'all'); }} onKeyDown={(e) => e.stopPropagation()} /></div></div></div>
       <div className="ev-sec">
-        <div className="ev-r"><button className="ev-f" disabled={ro} onClick={menuAt('calendarPick')}><span className="ev-sw" style={{ ['--sw' as any]: fam.backgroundPrimary }} /><span>{cal?.name}</span></button></div>
+        <div className="ev-r"><button className="ev-f" data-field="c" disabled={ro} onClick={menuAt('calendarPick')}><span className="ev-sw" style={{ ['--sw' as any]: fam.backgroundPrimary }} /><span>{cal?.name}</span></button></div>
         <div className="ev-r ind" style={{ gap: 0 }}>
-          <button className="ev-f" style={{ minWidth: 94 }} disabled={ro} onClick={menuAt('busy')}>{ev.transparency === 'transparent' ? t('free') : t('busy')}</button>
-          <button className="ev-f" disabled={ro} onClick={menuAt('visibility')}>{ev.visibility === 'private' ? t('privateV') : ev.visibility === 'public' ? t('publicV') : t('defaultVisibility')}</button>
+          <button className="ev-f" data-field="f" style={{ minWidth: 94 }} disabled={ro} onClick={menuAt('busy')}>{ev.transparency === 'transparent' ? t('free') : t('busy')}</button>
+          <button className="ev-f" data-field="y" disabled={ro} onClick={menuAt('visibility')}>{ev.visibility === 'private' ? t('privateV') : ev.visibility === 'public' ? t('publicV') : t('defaultVisibility')}</button>
         </div>
-        <div className="ev-r"><button className="ev-f" disabled={ro} onClick={menuAt('reminder')}><Bell size={18} /><span className="dim">{t('reminders')}</span></button></div>
+        <div className="ev-r"><button className="ev-f" data-field="m" disabled={ro} onClick={menuAt('reminder')}><Bell size={18} /><span className="dim">{t('reminders')}</span></button></div>
         {(ev.reminders ?? []).map((r, i) => (
           <div key={i} className="ev-r ind"><div className="ev-f"><span style={{ flex: 1 }}>{reminderLabel(r.minutes)}</span>
             {!ro && <button className="ibtn xs" onClick={() => patch({ reminders: ev.reminders!.filter((_, j) => j !== i) }, 'all')}><X size={12} /></button>}</div></div>
@@ -144,7 +163,7 @@ function EventPanel({ occKey }: { occKey: string }) {
 
 function DateField({ occ, disabled, onChange, label }: { occ: Occurrence; disabled?: boolean; label?: string; onChange: (d: number) => void }) {
   return (
-    <label className="ev-f ev-date" style={{ position: 'relative' }}>
+    <label data-field="d" className="ev-f ev-date" style={{ position: 'relative' }}>
       {label ?? longDate(occ.startDay)}
       <input type="date" disabled={disabled} value={isoDate(occ.startDay)} onChange={(e) => { if (e.target.value) onChange(parseIsoDate(e.target.value)); }}
         style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'default' }} onKeyDown={(e) => e.stopPropagation()} />

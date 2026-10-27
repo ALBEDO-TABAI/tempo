@@ -1,6 +1,7 @@
 // Command registry: shared by the keyboard handler, ⌘K menu, shortcuts panel and native menu.
 import { getState, setState, setView, goToday, step, zoom, toggleTheme, openOverlay, setPrefs, deleteOccurrences, duplicateOccurrences, copyOccurrences, paste, undo, redo, select, occurrencesIn, periodDays, monthRange, importIcsFile, exportCalendar, clearSelection } from './store';
 import { newEventNow } from './components/Sidebar';
+import { toggleAvailability, stopAvailability } from './availability';
 import { Key } from './i18n';
 import { isMac } from './platform';
 
@@ -11,6 +12,7 @@ export const COMMANDS: Command[] = [
   { id: 'create', label: 'createEvent', section: 'secCalendar', keys: ['C'], run: () => newEventNow() },
   { id: 'import', label: 'importIcs', section: 'secCalendar', run: () => importIcsFile() },
   { id: 'export', label: 'exportIcs', section: 'secCalendar', run: () => exportCalendar() },
+  { id: 'availability', label: 'shareAvail', section: 'secCalendar', keys: ['S'], run: () => toggleAvailability() },
   { id: 'goto', label: 'goToDate', section: 'secNavigation', keys: ['.'], run: () => openOverlay('goto') },
   { id: 'today', label: 'goToday', section: 'secNavigation', keys: ['T'], run: () => goToday() },
   { id: 'next', label: 'nextPeriod', section: 'secNavigation', keys: ['J'], run: () => step(1) },
@@ -44,6 +46,25 @@ export function selectAllVisible() {
   if (s.prefs.gridView === 'month') { const r = monthRange(s); from = r.first; to = r.first + 42; } else { const d = periodDays(s); from = d[0]; to = d[d.length - 1] + 1; }
   select(occurrencesIn(from, to).map((o) => o.key));
 }
+let seq: { k: string; t: number } | null = null;
+/** `e` + key: focus or open the matching field of the open event panel (data-field attributes in Panel.tsx). */
+function editField(k: string): boolean {
+  const s = getState(); if (!s.editing && s.selected.length === 1) setState({ editing: s.selected[0] });
+  const go = () => {
+    if (k === 't') { const el = document.querySelector<HTMLElement>('[data-testid=ev-title]'); el?.focus(); return; }
+    if (['z', 'r', 'a'].includes(k) && !document.querySelector(`[data-field=${k}]`)) (document.querySelector('[data-field=x]') as HTMLElement | null)?.click();
+    requestAnimationFrame(() => { const el = document.querySelector<HTMLElement>(`[data-field=${k === 'd' ? 'd' : k}]`); if (!el) return; if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.focus(); else if (el.tagName === 'LABEL') (el.querySelector('input') as HTMLInputElement | null)?.showPicker?.(); else el.click(); });
+  };
+  requestAnimationFrame(go); return true;
+}
+/** ⌘J: open the video link of the selected event, or of the next event with one today. */
+function joinNext(): boolean {
+  const s = getState(); const now = Date.now();
+  const sel = s.selected.length === 1 ? occurrencesIn(s.today - 400, s.today + 400).find((o) => o.key === s.selected[0]) : undefined;
+  const o = sel?.event.conferenceUrl ? sel : occurrencesIn(s.today, s.today + 1).filter((x) => x.event.conferenceUrl && x.end > now).sort((a, b) => a.start - b.start)[0];
+  if (!o?.event.conferenceUrl) return false;
+  window.open(o.event.conferenceUrl, '_blank', 'noopener'); return true;
+}
 /** Global keyboard handler. Returns true when handled. */
 export function handleKey(e: KeyboardEvent): boolean {
   const s = getState(); const mod = isMac ? e.metaKey : e.ctrlKey; const k = e.key;
@@ -52,8 +73,10 @@ export function handleKey(e: KeyboardEvent): boolean {
     if (s.overlay) { setState({ overlay: null }); return true; }
     if (editable(e.target)) { (e.target as HTMLElement).blur(); return true; }
     if (s.selected.length) { clearSelection(); return true; }
+    if (s.avail.active) { stopAvailability(); return true; }
     return false;
   }
+  if (mod && k === 'Enter') { const a = document.activeElement as HTMLElement | null; if (editable(a)) { a!.blur(); setState({ draftId: null }); return true; } return false; }
   if (mod && k.toLowerCase() === 'k' && !e.shiftKey) { openOverlay(s.overlay === 'cmdk' ? null : 'cmdk'); return true; }
   if (mod && k === ',' && !e.shiftKey) { openOverlay('settings'); return true; }
   if (mod && e.shiftKey && (k === '>' || k === '.')) { zoom(1); return true; }
@@ -73,7 +96,17 @@ export function handleKey(e: KeyboardEvent): boolean {
   if (mod && k.toLowerCase() === 'x') { if (s.selected.length) { copyOccurrences(s.selected, true); return true; } return false; }
   if (mod && k.toLowerCase() === 'v') { paste(); return true; }
   if (mod && k.toLowerCase() === 'f') { openOverlay('search'); return true; }
-  if ((k === 'Backspace' || k === 'Delete') && s.selected.length) { deleteOccurrences(s.selected); return true; }
+  if ((k === 'Backspace' || k === 'Delete') && s.selected.length) { deleteOccurrences(s.selected, mod ? { scope: 'this' } : {}); return true; }
+  if (mod && k.toLowerCase() === 'j') { return joinNext(); }
+  if (mod && k.toLowerCase() === 'n') { newEventNow(); return true; }
+  if (e.altKey && !mod && (k.toLowerCase() === 't' || e.code === 'KeyT')) { goToday(); document.querySelector('[data-testid=timegrid] .scroller')?.dispatchEvent(new CustomEvent('tempo-scroll-now')); return true; }
+  // two-key sequences: g s (settings), g t (today), g . (go to date); e <field> edits a field of the open event
+  if (!(e.metaKey || e.ctrlKey || e.altKey) && seq && Date.now() - seq.t < 1200) {
+    const p = seq.k; seq = null;
+    if (p === 'g') { if (k === 's') { openOverlay('settings'); return true; } if (k === 't') { goToday(); return true; } if (k === '.') { openOverlay('goto'); return true; } if (k === 'k') { openOverlay('cmdk'); return true; } return true; }
+    if (p === 'e') return editField(k);
+  }
+  if (!(e.metaKey || e.ctrlKey || e.altKey) && (k === 'g' || (k === 'e' && (s.editing || s.selected.length === 1)))) { seq = { k, t: Date.now() }; return true; }
   if (e.metaKey || e.ctrlKey || e.altKey) return false;
   switch (k) {
     case 'd': case '1': setView('default', 1); return true;
@@ -83,6 +116,7 @@ export function handleKey(e: KeyboardEvent): boolean {
     case 'j': case 'n': case 'ArrowRight': step(1); return true;
     case 'k': case 'p': case 'ArrowLeft': step(-1); return true;
     case 'c': newEventNow(); return true;
+    case 's': toggleAvailability(); return true;
     case '\\': case '`': return runCommand('sidebar');
     case '?': openOverlay('shortcuts'); return true;
     case '/': openOverlay('search'); return true;

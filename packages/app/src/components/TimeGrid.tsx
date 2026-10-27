@@ -1,11 +1,12 @@
 // Week / day / N-day time grid. Geometry follows the measured reference.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
+import { addSlot, removeSlot } from '../availability';
 import { layoutDay, packSpans, startOfDayMs, minutesOfDay, weekday, ymd, Occurrence, isoDate, DayNum } from '@tempo/core';
 import { useStore, getState, setState, periodDays, occurrencesIn, select, clearSelection, createEvent, updateOccurrence, openMenu, setPrefs, calendarOf } from '../store';
 import { useSize } from '../hooks';
 import { G, gutterWidth, colWidth, hourHeight, minDensityLevel, allDayHeight } from '../geometry';
-import { hourLabel, timeOfFull, wdShort, gmtLabel } from '../fmt';
+import { hourLabel, timeOfFull, wdShort, gmtLabel, panelTime } from '../fmt';
 import { t } from '../i18n';
 import { Chip } from './Chip';
 
@@ -20,7 +21,7 @@ type Drag =
 export function TimeGrid() {
   const wrap = useRef<HTMLDivElement>(null); const scroller = useRef<HTMLDivElement>(null);
   const size = useSize(wrap);
-  const s = useStore((x) => ({ prefs: x.prefs, anchor: x.anchor, events: x.events, calendars: x.calendars, now: x.now, today: x.today, selected: x.selected, systemDark: x.systemDark, minDensity: x.minDensity }));
+  const s = useStore((x) => ({ prefs: x.prefs, anchor: x.anchor, events: x.events, calendars: x.calendars, now: x.now, today: x.today, selected: x.selected, systemDark: x.systemDark, minDensity: x.minDensity, avail: x.avail }));
   const tz = s.prefs.primaryTimeZone; const h24 = s.prefs.format24HourTime;
   const days = useMemo(() => periodDays(getState()), [s.prefs, s.anchor]); // eslint-disable-line
   const n = days.length;
@@ -53,6 +54,11 @@ export function TimeGrid() {
     if (scrolledFor.current === key) return; scrolledFor.current = key;
     const nowMin = minutesOfDay(Date.now(), tz); el.scrollTop = Math.max(0, Math.min(nowMin - 120, 8 * 60) / 60 * hourH);
   }, [hourH]); // eslint-disable-line
+  useEffect(() => {
+    const el = scroller.current; if (!el) return;
+    const f = () => { const nowMin = minutesOfDay(Date.now(), tz); el.scrollTo({ top: Math.max(0, (nowMin - 120) / 60 * hourH), behavior: 'smooth' }); };
+    el.addEventListener('tempo-scroll-now', f); return () => el.removeEventListener('tempo-scroll-now', f);
+  }, [hourH, tz]);
 
   // ---------- pointer helpers ----------
   const point = (e: { clientX: number; clientY: number }) => {
@@ -89,12 +95,14 @@ export function TimeGrid() {
     const now = Date.now(); const lc = lastClick.current; const dbl = now - lc.t < 350 && Math.hypot(e.clientX - lc.x, e.clientY - lc.y) < 5;
     lastClick.current = { t: now, x: e.clientX, y: e.clientY };
     setState({ cursorDay: p.day });
+    if (dbl && getState().avail.active) { const st = toMs(p.day, a); addSlot({ start: st, end: st + getState().avail.duration * 60000 }); return; }
     if (dbl) { const st = toMs(p.day, a); createEvent({ allDay: false, start: st, end: st + getState().prefs.defaultEventDuration * 60000 }, { draft: true }); return; }
     track((ev) => { const q = point(ev); setDrag({ kind: 'create', day: p.day, a, b: q.min >= a ? Math.max(a + TICK, Math.ceil(q.min / TICK) * TICK) : snapF(q.min) }); },
       (_ev, moved) => {
         const d = dragRef.current; setDrag(null);
-        if (!moved || !d || d.kind !== 'create') { clearSelection(); return; }
+        if (!moved || !d || d.kind !== 'create') { if (!getState().avail.active) clearSelection(); return; }
         const lo = Math.min(d.a, d.b), hi = Math.max(d.a, d.b, lo + TICK);
+        if (getState().avail.active) { addSlot({ start: toMs(d.day, lo), end: toMs(d.day, hi) }); return; }
         createEvent({ allDay: false, start: toMs(d.day, lo), end: toMs(d.day, hi) }, { draft: true });
       }, { x: e.clientX, y: e.clientY });
   };
@@ -176,6 +184,10 @@ export function TimeGrid() {
           return <Chip key={o.key + d} occ={o} kind="timed" x={p.leftPercent * cw} y={y} w={p.widthPercent * cw - G.chipMarginRight} h={h} layer={p.layer}
             selected={sel.has(o.key)} ghost={isMv} onDown={onChipDown} onContext={onChipContext} onDbl={onChipDbl} />;
         })}
+        {s.avail.active && s.avail.slots.map((x, i) => { const sod = startOfDayMs(d, tz); if (x.end <= sod || x.start >= sod + 86400000) return null;
+          const a = Math.max(0, (x.start - sod) / 60000), b = Math.min(1440, (x.end - sod) / 60000);
+          return <div key={'av' + i} className="avslot" data-testid="avslot" style={{ top: (a / 60) * hourH, height: Math.max(10, ((b - a) / 60) * hourH - 2) }} onPointerDown={(e) => e.stopPropagation()}>
+            <span className="tnum">{panelTime(x.start, tz, h24)} – {panelTime(x.end, tz, h24)}</span><button onClick={() => removeSlot(i)}><X size={12} /></button></div>; })}
         {d !== s.today && <div className="nowfaint" style={{ top: nowY, left: 0, right: 0 }} />}
       </div>
     );
