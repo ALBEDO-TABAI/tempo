@@ -119,9 +119,9 @@ export async function init() {
   }
   setLocale(prefs.locale);
   let { accounts, calendars, events } = snap;
-  if (!calendars.length && !(HARNESS && Q.get('fixture') === 'empty')) {
+  if (!calendars.length) {
     const s = seed(dayOf(Date.now(), prefs.primaryTimeZone), prefs.primaryTimeZone);
-    accounts = s.accounts; calendars = s.calendars; events = s.events;
+    accounts = s.accounts; calendars = s.calendars; events = HARNESS && Q.get('fixture') === 'empty' ? [] : s.events;
     for (const a of accounts) bridge.put('account', a); for (const c of calendars) bridge.put('calendar', c); for (const e of events) putEv(e);
   }
   const today = dayOf(Date.now(), prefs.primaryTimeZone);
