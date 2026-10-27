@@ -1,0 +1,4 @@
+{ "name": "@tempo/core", "private": true, "version": "0.1.0", "type": "module", "main": "src/index.ts",
+  "scripts": { "test": "vitest run" },
+  "dependencies": { "d3-cam02": "^0.1.5", "d3-color": "^3.1.0" },
+  "devDependencies": { "vitest": "^3.2.0", "typescript": "^5.9.0" } }
