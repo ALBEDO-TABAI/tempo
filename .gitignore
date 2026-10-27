@@ -1,0 +1,7 @@
+node_modules/
+dist/
+release/
+packages/tokens/generated/
+packages/parity/out/
+*.log
+.DS_Store

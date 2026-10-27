@@ -1,0 +1,19 @@
+{
+  "type": {
+    "titleXxl": [30, 36], "titleXl": [26, 32], "titleLg": [22, 26], "title": [20, 25], "titleSm": [17, 22],
+    "bodyLg": [16, 24], "body": [14, 20], "bodySm": [13, 18], "caption": [12, 16], "captionMono": [12, 20], "captionSm": [10, 13]
+  },
+  "weight": { "light": 200, "regular": 400, "medium": 500, "semibold": 600, "bold": 700 },
+  "chip": { "titleFontSize": 11, "titleLineHeight": 13, "timeFontSize": 9, "timeLineHeight": 11, "timeMarginTop": 2, "paddingTop": 1, "paddingBottom": 1, "marginBottom": 3, "marginRight": 13 },
+  "grid": {
+    "colHeaderHeight": 28, "monthColHeaderHeight": 29, "allDayRowHeight": 25, "allDayChipHeight": 19, "allDayChipSpacing": 2, "allDayPaddingTop": 3,
+    "hiddenZoneHeight": 24, "timeZoneColWidth": 46, "timeColumnLeftGutter": 26, "weekNumberGutter": 24, "minColWidth": 16,
+    "defaultHourHeight": 48, "densityStep": 8, "minHourHeight": 16, "maxHourHeight": 208, "monthCellPaddingTop": 24,
+    "overscanDays": 5, "tickMinutes": 15, "fineTickMinutes": 5, "coarseTickMinutes": 60, "stackHalfWidthMinutes": 30,
+    "headerTopBarHeight": 48, "sidebarWidth": 240, "sidebarPaneWidth": 300, "contextPanelWidth": 284
+  },
+  "interaction": {
+    "doubleClickMs": 350, "doubleClickPx": 5, "edgeScrollZone": 30, "edgeScrollStep": 12, "edgeScrollThreshold": 20,
+    "scrollEndMs": 200, "resizeSettleMs": 500, "monthScrollAnimMs": 700, "defaultEventDuration": 30, "maxTimeZones": 4
+  }
+}
