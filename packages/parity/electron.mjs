@@ -52,7 +52,9 @@ await c.evaluate(`(async()=>{const s=window.__tempo; s.createEventAt ? 0 : 0; do
 await sleep(600);
 const n1 = await c.evaluate('Object.keys(window.__tempo.getState().events).length');
 ok('C creates an event', n1 === n0 + 1, `events=${n1}`);
-await c.evaluate(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`);
+await sleep(300); await c.send('Input.insertText', { text: 'E2E 建立' }); await sleep(300);
+await c.evaluate(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`); await sleep(400);
+const n1b = await c.evaluate('Object.keys(window.__tempo.getState().events).length');
 // menus -> renderer
 const labels = await c.evaluate('window.tempo.test("menuLabels")');
 ok('application menu built (zh-TW labels)', labels.length >= 5 && labels.some((m) => m[0] === '編輯' && m[1].includes('全選可見活動')), labels.map((m) => m[0]).join(' / '));
@@ -85,16 +87,17 @@ await sleep(1200);
 const imported = await c.evaluate(`Object.values(window.__tempo.getState().events).filter(e=>e.title==='匯入測試').length`);
 ok('.ics passed to a second instance is imported', imported === 1, `found=${imported}`);
 const occKey = await c.evaluate(`(()=>{const e=Object.values(window.__tempo.getState().events).find(e=>e.id===${JSON.stringify(anyKey)}); return e.id+'|'+String(e.start)})()`);
+await c.evaluate(`window.tempo.on('deep-link', u=>{window.__dl=u})`);
 await run('npx', ['electron', '.', '--no-sandbox', `tempo://event/${encodeURIComponent(occKey)}`]);
 await sleep(1000);
 const sel = await c.evaluate('window.__tempo.getState().selected');
-ok('tempo://event deep link selects the event', sel.length === 1 && sel[0].startsWith(anyKey + '|'), JSON.stringify(sel));
+ok('tempo://event deep link selects the event', sel.length === 1 && (sel[0] === anyKey || sel[0].startsWith(anyKey + '|')), JSON.stringify(sel));
 await c.evaluate(`window.__tempo.setPrefs({gridView:'month'})`); await sleep(800);
 await stop(proc);
 // ---- run 2: same profile, state restored from SQLite
 proc = launch(); c = await page(); await sleep(600);
 const n2 = await c.evaluate('Object.keys(window.__tempo.getState().events).length');
-ok('events persisted across restart (SQLite)', n2 === n1 + 1, `events=${n2}`);
+ok('events persisted across restart (SQLite)', n2 === n1b + 1, `events=${n2}`);
 ok('prefs persisted across restart', (await c.evaluate('window.__tempo.getState().prefs.gridView')) === 'month');
 ok('db file on disk', fs.existsSync(`${UD}/tempo.db`));
 await stop(proc);

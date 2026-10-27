@@ -93,7 +93,7 @@ export function occurrencesIn(from: DayNum, to: DayNum, s = state): Occurrence[]
 }
 export function findOccurrence(key: string, s = state): Occurrence | undefined {
   const [id, orig] = splitKey(key); const ev = s.events[id]; if (!ev) return undefined;
-  if (!orig) { const os = occurrences([ev], -1e7, 1e7, s.prefs.primaryTimeZone); return os[0]; }
+  if (!orig || !ev.rrule) { const os = occurrences([ev], -1e7, 1e7, s.prefs.primaryTimeZone); return os[0]; }
   const day = orig.includes('-') ? parseIsoDate(orig) : dayOf(Number(orig), s.prefs.primaryTimeZone);
   const rel = Object.values(s.events).filter((e) => e.id === id || e.recurringEventId === id);
   return occurrences(rel, day - 2, day + 3, s.prefs.primaryTimeZone).find((o) => o.key === key)
@@ -127,7 +127,7 @@ export async function init() {
   const today = dayOf(Date.now(), prefs.primaryTimeZone);
   setState({ ready: true, prefs, accounts, calendars: [...calendars].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)), events: Object.fromEntries(events.map((e) => [e.id, e])), today, anchor: today, cursorDay: today });
   if (HARNESS && Q.get('date')) setState({ anchor: parseIsoDate(Q.get('date')!) });
-  (window as any).__tempo = { getState, setState, setPrefs };
+  (window as any).__tempo = { getState, setState, setPrefs, findOccurrence: (k: string) => findOccurrence(k) };
   if (typeof matchMedia !== 'undefined') matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => setState({ systemDark: e.matches }));
   window.setInterval(tick, 15000);
 }

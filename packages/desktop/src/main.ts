@@ -93,6 +93,7 @@ function buildMenu() {
     { label: L.file, submenu: [
       item(L.newEvent, 'create', 'CmdOrCtrl+N'), { type: 'separator' },
       item(L.importIcs, 'import', 'CmdOrCtrl+O'), item(L.exportIcs, 'export', 'CmdOrCtrl+Shift+S'), { type: 'separator' },
+      ...(isMac ? [] : [item(L.settings, 'settings', 'Ctrl+,'), { type: 'separator' } as MenuItemConstructorOptions]),
       { label: L.closeWindow, role: 'close' },
       ...(isMac ? [] : [{ type: 'separator' } as MenuItemConstructorOptions, { label: L.quit, click: () => { quitting = true; app.quit(); } }]),
     ] },
@@ -205,6 +206,7 @@ app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openIcsPa
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', (_e, argv) => {
+    if (process.env.TEMPO_TEST === '1') console.log('[tempo] second-instance', JSON.stringify(argv));
     showWindow();
     for (const a of argv.slice(1)) { if (a.startsWith(`${SCHEME}://`)) emit('deep-link', a); else if (/\.(ics|vcs)$/i.test(a)) openIcsPath(a); }
   });
