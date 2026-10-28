@@ -21,8 +21,8 @@ export function App() {
   useEffect(() => {
     const kd = (e: KeyboardEvent) => { if (handleKey(e)) { e.preventDefault(); e.stopPropagation(); } };
     window.addEventListener('keydown', kd);
-    // narrow windows auto-collapse the side panes (reference behaviour at 500 px)
-    const rs = () => { if (innerWidth < 700 && getState().prefs.contextPanel) setState((x) => ({ prefs: { ...x.prefs, contextPanel: false } })); };
+    // Give the calendar room in compact windows; panes can still be opened as overlays.
+    const rs = () => { if (innerWidth < 1050) setState((x) => ({ prefs: { ...x.prefs, contextPanel: false, sidebar: innerWidth < 680 ? false : x.prefs.sidebar } })); };
     window.addEventListener('resize', rs); rs();
     const offs = [
       bridge.on('menu', (id: string) => {

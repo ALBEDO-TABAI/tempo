@@ -14,7 +14,7 @@ export function TopBar() {
     <div className="topbar" data-testid="topbar">
       {!s.sidebar && <div className="collapsed-side nodrag"><button className="ibtn sm" onClick={() => setPrefs({ sidebar: true })}><PanelLeft size={16} /></button></div>}
       <div className="topbar-row">
-        <div className="avatar" title="Tempo">T</div>
+        <div className="wordmark" title="Tempo"><span className="brand-dot" />Tempo</div>
         <button className="btn" data-testid="viewbtn" onClick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); openMenu({ kind: 'view', x: r.left, y: r.bottom + 8 }); }}>
           <span>{label}</span><ChevronDown size={14} />
         </button>

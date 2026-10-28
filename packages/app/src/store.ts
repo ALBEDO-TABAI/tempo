@@ -160,7 +160,7 @@ export function zoom(d: 1 | -1 | 0) {
   setPrefs({ densityZoomLevel: lvl });
 }
 export function toggleTheme() { setPrefs({ interfaceTheme: isDark() ? 'light' : 'dark' }); }
-export function openOverlay(o: Overlay) { setState({ overlay: o, menu: null }); }
+export function openOverlay(o: Overlay) { setState({ overlay: o, menu: null, prefs: { ...state.prefs, contextPanel: o === 'search' || o === 'shortcuts' || state.prefs.contextPanel } }); }
 export function openMenu(m: MenuState | null) { setState({ menu: m }); }
 
 // ---------- toasts / undo ----------
@@ -188,7 +188,7 @@ export function createEvent(p: Partial<CalEvent> & { start: number | string; end
   const e: CalEvent = { id, uid: `${id}@tempo.local`, calendarId: cal, title: '', status: 'confirmed', transparency: p.allDay ? 'transparent' : 'opaque', timeZone: p.allDay ? undefined : tz(), createdAt: now, updatedAt: now, reminders: p.allDay ? (state.prefs.defaultAllDayReminder >= 0 ? [{ minutes: state.prefs.defaultAllDayReminder, method: 'notification' as const }] : []) : (state.prefs.defaultReminder >= 0 ? [{ minutes: state.prefs.defaultReminder, method: 'notification' as const }] : []), ...p } as CalEvent;
   apply([e], []);
   const undoFn = record(t('created'), [], [e], [], [id]);
-  if (opts.select !== false) setState((s) => ({ selected: [id], editing: id, draftId: opts.draft ? id : null, focusTitle: s.focusTitle + 1, overlay: null, menu: null }));
+  if (opts.select !== false) setState((s) => ({ selected: [id], editing: id, draftId: opts.draft ? id : null, focusTitle: s.focusTitle + 1, overlay: null, menu: null, prefs: { ...s.prefs, contextPanel: true } }));
   void undoFn; return id;
 }
 /** Discard an untouched draft (no title) when it loses focus. */
@@ -200,7 +200,7 @@ export function settleDraft(nextKey: string | null) {
 export function select(keys: string[], opts: { additive?: boolean; edit?: boolean } = {}) {
   const next = opts.additive ? Array.from(new Set([...state.selected, ...keys])) : keys;
   settleDraft(next[0] ?? null);
-  setState({ selected: next, editing: opts.edit === false ? state.editing : next.length === 1 ? next[0] : next.length ? state.editing : null, menu: null });
+  setState({ selected: next, editing: opts.edit === false ? state.editing : next.length === 1 ? next[0] : next.length ? state.editing : null, menu: null, prefs: { ...state.prefs, contextPanel: (opts.edit !== false && next.length === 1) || state.prefs.contextPanel } });
 }
 export function clearSelection() { settleDraft(null); setState({ selected: [], editing: null, menu: null }); }
 

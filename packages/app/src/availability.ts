@@ -11,7 +11,7 @@ const merge = (xs: Slot[]) => {
   return out;
 };
 const set = (p: Partial<ReturnType<typeof getState>['avail']>) => setState((s) => ({ avail: { ...s.avail, ...p } }));
-export const toggleAvailability = () => { const a = getState().avail; set({ active: !a.active, slots: a.active ? [] : a.slots }); if (!a.active) setState({ selected: [], editing: null }); };
+export const toggleAvailability = () => { const a = getState().avail; set({ active: !a.active, slots: a.active ? [] : a.slots }); if (!a.active) setState((s) => ({ selected: [], editing: null, prefs: { ...s.prefs, contextPanel: true } })); };
 export const stopAvailability = () => set({ active: false, slots: [] });
 export const addSlot = (x: Slot) => set({ slots: merge([...getState().avail.slots, x]) });
 export const removeSlot = (i: number) => set({ slots: getState().avail.slots.filter((_, j) => j !== i) });

@@ -34,3 +34,9 @@ node packages/parity/behaviour.mjs
 ```
 
 Mac 本机已通过 18 项基础测试和 50 项浏览器交互检查，并检查桌面窗口、菜单、新建日程与重启保存。`packages/parity/electron.mjs` 是原有 Linux/Xvfb 专用测试，未改为 Mac 测试。
+
+## 外观试版与恢复
+
+当前外观试版保存在 `design/poster-printer-style`。改动前的可运行版本保存在 `checkpoint/before-poster-style`（`b76ac12`）。
+
+需要恢复时，先退出桌面应用，再执行 `git switch checkpoint/before-poster-style` 和 `npm start`；日历数据独立于源码保存，不受切换影响。
