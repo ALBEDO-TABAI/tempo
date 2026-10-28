@@ -42,7 +42,7 @@ html.dark {
 }
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; height: 100%; overflow: hidden; }
-body { font-family: var(--font); font-size: 16px; background: radial-gradient(ellipse at 30% 0%, rgba(255, 130, 85, .07), transparent 55%), radial-gradient(circle at 1px 1px, var(--stage-dot) .65px, transparent .9px) 0 0 / 24px 24px, var(--stage); color: var(--c-text); -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
+body { font-family: var(--font); font-size: 16px; background: radial-gradient(circle at 1px 1px, var(--stage-dot) .65px, transparent .9px) 0 0 / 24px 24px, var(--stage); color: var(--c-text); -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: default; }
 input, textarea { font: inherit; color: inherit; }
 .tnum { font-feature-settings: "tnum", "lnum", "ss01", "ss02", "ss03", "ss04"; }
