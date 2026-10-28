@@ -5,6 +5,11 @@
   "type": "module",
   "workspaces": ["packages/*"],
   "scripts": {
-    "tokens": "node packages/tokens/build.mjs"
+    "tokens": "node packages/tokens/build.mjs",
+    "dev": "npm run tokens && npm -w @tempo/app run dev",
+    "build": "npm run tokens && npm -w @tempo/app run build && npm -w @tempo/desktop run build",
+    "start": "npm run build && npm -w @tempo/desktop start",
+    "test": "npm -w @tempo/core test",
+    "typecheck": "npm run tokens && npm -w @tempo/app run typecheck"
   }
 }

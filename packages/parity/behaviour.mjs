@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const BASE = process.env.TEMPO_URL || 'http://127.0.0.1:5300/index.html';
 const Q = '?harness=1&fixture=empty&tz=Asia/Shanghai&now=2026-10-28T09:00:00%2B08:00&freeze=1&locale=zh-TW&theme=light';
 const res = []; const ok = (name, pass, info = '') => { res.push({ name, pass: !!pass, info: String(info) }); console.log(`${pass ? 'PASS' : 'FAIL'} ${name} ${pass ? '' : info}`); };
-const browser = await chromium.launch({ executablePath: '/home/box/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome' });
+const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
 const page = await ctx.newPage();
 const errors = []; page.on('pageerror', (e) => errors.push(e.message));
@@ -19,7 +19,7 @@ async function geo() {
 }
 async function pt(dayIdx, min) { const g = await geo(); return { x: g.x + g.gutter + dayIdx * g.colW + g.colW / 2, y: g.y + (min / 60) * g.hourH - g.st }; }
 async function drag(a, b, steps = 8) { await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps }); await page.mouse.up(); await sleep(150); }
-const key = (k) => page.keyboard.press(k);
+const key = (k) => page.keyboard.press(process.platform === 'darwin' ? k.replace('Control+', 'Meta+') : k);
 const SOD = Date.parse('2026-10-25T00:00:00+08:00'); // Sunday of the visible week
 const at = (dayIdx, h, m = 0) => SOD + dayIdx * 86400000 + (h * 60 + m) * 60000;
 
@@ -162,7 +162,7 @@ const ny = list.find((e) => e.title === '紐約會議');
 ok('ICS import via the sidebar file picker', list.length === 2 && ny && ny.start === Date.parse('2026-10-28T13:00:00Z'), JSON.stringify(list.map((e) => e.title)));
 ok('imported TZID event renders at 21:00 Shanghai', (await page.locator('.chip', { hasText: '紐約會議' }).count()) > 0);
 ok('imported 2-day all-day event spans 2 columns', await page.evaluate(() => { const c = [...document.querySelectorAll('.chip.allday')].find((x) => x.textContent.includes('兩天活動')); return c && c.getBoundingClientRect().width > 1.5 * +document.querySelector('[data-testid=timegrid]').dataset.colw; }));
-const [dl] = await Promise.all([page.waitForEvent('download'), page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })); })
+const [dl] = await Promise.all([page.waitForEvent('download'), key('Control+k')
   .then(async () => { await sleep(100); await page.keyboard.type('匯出'); await sleep(100); await key('Enter'); })]);
 const out = fs.readFileSync(await dl.path(), 'utf8');
 ok('⌘K → export downloads a valid .ics', /BEGIN:VCALENDAR/.test(out) && /SUMMARY:紐約會議/.test(out) && /DTSTART;VALUE=DATE:20261030/.test(out), dl.suggestedFilename());
